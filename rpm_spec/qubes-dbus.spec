@@ -49,9 +49,12 @@ foo bar
 %install
 
 python setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
+mkdir -p $RPM_BUILD_ROOT/usr/share
+cp -r dbus-1 $RPM_BUILD_ROOT/usr/share/dbus-1
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files -f INSTALLED_FILES
 %defattr(-,root,root)
+/usr/share/dbus-1/services/org.qubes.DomainManager1.service

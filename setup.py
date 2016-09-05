@@ -12,9 +12,9 @@ if __name__ == '__main__':
         description='Qubes DBus package',
         license='GPL2+',
         url='https://www.qubes-os.org/',
-        packages=['qubes.dbus'],
+        packages=['qubesdbus'],
         entry_points={
-            'qubes.events.receivers': [
-                'test = qubes.dbus:Receiver'
+            'qubes.ext': [
+                'qubesdbus = qubesdbus:QubesDbusProxy'
             ]
         })
