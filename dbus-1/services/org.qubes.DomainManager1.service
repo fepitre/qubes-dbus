@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.qubes.DomainManager1
+Exec=/usr/bin/python /usr/lib/python2.7/site-packages/qubesdbus/domain_manager.py

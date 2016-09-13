@@ -18,10 +18,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from __future__ import absolute_import
+''' qubesdbus exceptions '''
 
-from .constants import * # pylint: disable=wildcard-import
-from .proxy import QubesDbusProxy
-from .domain_manager import DomainManager
-from .constants import NAME_PREFIX, PATH_PREFIX, VERSION
-from .exceptions import QubesDbusException
+class QubesDbusException(Exception):
+    ''' Base qubesdbus exception '''
+    pass

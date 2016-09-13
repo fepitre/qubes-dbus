@@ -24,17 +24,19 @@ from __future__ import absolute_import
 
 import dbus
 import dbus.mainloop.glib
-from qubesdbus import NAME_PREFIX, PATH_PREFIX, VERSION
+
+from .constants import NAME_PREFIX, PATH_PREFIX, VERSION
+
+dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
 
 class _DbusServiceObject(dbus.service.Object):
     def __init__(self):
         self.bus_path = ''.join([PATH_PREFIX, '/', self.__class__.__name__,
                                  str(VERSION)])
-        self.bus_name = ''.join([NAME_PREFIX, '.', self.__class__.__name__,
-                                 str(VERSION)])
-        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-        bus = dbus.service.BusName(self.bus_name, dbus.SessionBus())
-        dbus.service.BusName(self.bus_name, dbus.SessionBus())
+        bus_name = ''.join([NAME_PREFIX, '.', self.__class__.__name__,
+                            str(VERSION)])
+        self.bus = dbus.SessionBus()
+        self.bus_name = dbus.service.BusName(bus_name, self.bus)
         # avoid pylint super-on-old-class error
-        dbus.service.Object.__init__(self, bus, self.bus_path)
+        dbus.service.Object.__init__(self, self.bus_name, self.bus_path)
