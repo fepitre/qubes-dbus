@@ -58,3 +58,4 @@ rm -rf $RPM_BUILD_ROOT
 %files -f INSTALLED_FILES
 %defattr(-,root,root)
 /usr/share/dbus-1/services/org.qubes.DomainManager1.service
+/usr/share/dbus-1/services/org.qubes.Labels1.service
