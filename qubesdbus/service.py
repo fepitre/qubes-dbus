@@ -66,17 +66,6 @@ class DbusServiceObject(dbus.service.Object):
         dbus.service.Object.__init__(self, self.bus_name, self.bus_path)
 
 
-class _DbusServiceObject(dbus.service.Object):
-    def __init__(self):
-        self.bus_path = ''.join([PATH_PREFIX, '/', self.__class__.__name__,
-                                 str(VERSION)])
-        bus_name = ''.join([NAME_PREFIX, '.', self.__class__.__name__,
-                            str(VERSION)])
-        self.bus = dbus.SessionBus()
-        self.bus_name = dbus.service.BusName(bus_name, self.bus)
-        dbus.service.Object.__init__(self, self.bus_name, self.bus_path)
-
-
 class PropertiesObject(DbusServiceObject):
     # pylint: disable=invalid-name
 

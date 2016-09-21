@@ -24,7 +24,7 @@ try:
     # Check mypy dependencies. pylint: disable=ungrouped-imports,unused-import
     from typing import Any, Callable, Tuple, List, Dict
     from qubes.vm.qubesvm import QubesVM
-    from qubes import Qubes
+    from qubes import Qubes, Label
 except ImportError:
     pass
 
@@ -127,4 +127,18 @@ def domain(vm):
             result[key] = value
         except AttributeError:
             result[key] = dbus.String('')
+    return result
+
+
+def label(lab):
+    # type: (Label) -> Dict[dbus.String, Any]
+    result = {}
+    for name in dir(lab):
+        if name.startswith('_') or callable(getattr(lab, name)):
+            continue
+        try:
+            value = getattr(lab, name)
+            result[name] = dbus.String(value)
+        except AttributeError:
+            result[name] = ''
     return result
