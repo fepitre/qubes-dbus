@@ -66,7 +66,7 @@ def main(args=None):
     loop = GLib.MainLoop()
     app = qubes.Qubes()
 
-    labels_data = [qubesdbus.serialize.label(label)
+    labels_data = [qubesdbus.serialize.label_data(label)
                    for label in app.labels.values()]
     _ = Labels(labels_data)
     print("Service running...")

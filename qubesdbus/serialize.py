@@ -84,12 +84,7 @@ DOMAIN_STATE_PROPERTIES = ['is_halted',
                            'is_qrexec_running', ]
 
 
-def _init_states(states):
-    # type: (List[str]) -> Dict[str,Callable[[str, bool], Tuple[str,dbus.Boolean]]]
-    result = {
-    }  # type: Dict[str,Callable[[str, bool], Tuple[str,dbus.Boolean]]]
-
-def qubes(app):
+def qubes_data(app):
     ''' Serialize `qubes.Qubes` to a dictionary '''
     # type: (Qubes) -> Dict[dbus.String, Any]
     result = {}
@@ -102,7 +97,7 @@ def qubes(app):
 
     return result
 
-def domain(vm):
+def domain_data(vm):
     ''' Serializes a `qubes.vm.qubesvm.QubesVM` to a dictionary '''
     # type: (QubesVM) -> Dict[dbus.String, Any]
     result = {dbus.String('state'): 'halted'}
@@ -130,7 +125,7 @@ def domain(vm):
     return result
 
 
-def label(lab):
+def label_data(lab):
     # type: (Label) -> Dict[dbus.String, Any]
     result = {}
     for name in dir(lab):

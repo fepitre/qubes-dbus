@@ -69,8 +69,8 @@ def main(args=None):
     ''' Main function '''  # pylint: disable=unused-argument
     loop = GLib.MainLoop()
     app = qubes.Qubes()
-    data = qubesdbus.serialize.qubes(app)
-    domains = [qubesdbus.serialize.domain(vm) for vm in app.domains]
+    data = qubesdbus.serialize.qubes_data(app)
+    domains = [qubesdbus.serialize.domain_data(vm) for vm in app.domains]
     _ = DomainManager(data, domains)
     print("Service running...")
     loop.run()
