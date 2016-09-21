@@ -21,8 +21,8 @@
 import dbus
 
 try:
-    # Check for mypy dependencies pylint: disable=ungrouped-imports
-    from typing import Any, Callable, Tuple  # pylint: disable=unused-import
+    # Check mypy dependencies. pylint: disable=ungrouped-imports,unused-import
+    from typing import Any, Callable, Tuple, List, Dict
     from qubes.vm.qubesvm import QubesVM
     from qubes import Qubes
 except ImportError:
@@ -78,17 +78,16 @@ DOMAIN_PROPERTIES = ['attached_volumes',
                      # 'volumes',
                      'xid', ]
 
-_DOMAIN_STATES = ['is_halted',
-                  'is_paused',
-                  'is_running',
-                  'is_qrexec_running', ]
-
-STATE_MAP = _init_states(_DOMAIN_STATES)
+DOMAIN_STATE_PROPERTIES = ['is_halted',
+                           'is_paused',
+                           'is_running',
+                           'is_qrexec_running', ]
 
 
 def _init_states(states):
     # type: (List[str]) -> Dict[str,Callable[[str, bool], Tuple[str,dbus.Boolean]]]
-    result = {}  # type: Dict[str,Callable[[str, bool], Tuple[str,dbus.Boolean]]]
+    result = {
+    }  # type: Dict[str,Callable[[str, bool], Tuple[str,dbus.Boolean]]]
 
 def qubes(app):
     ''' Serialize `qubes.Qubes` to a dictionary '''
@@ -106,4 +105,26 @@ def qubes(app):
 def domain(vm):
     ''' Serializes a `qubes.vm.qubesvm.QubesVM` to a dictionary '''
     # type: (QubesVM) -> Dict[dbus.String, Any]
-    pass
+    result = {dbus.String('state'): 'halted'}
+    for name in DOMAIN_PROPERTIES:
+        if name in DOMAIN_STATE_PROPERTIES:
+            key = 'state'
+        elif name.startswith("is_"):
+            _, key = name.split("_", 1)
+        else:
+            key = name
+
+        key = dbus.String(key)
+        try:
+            value = getattr(vm, name)
+            if isinstance(value, dict):
+                value = dbus.Dictionary(value)
+            elif isinstance(value, bool):
+                value = dbus.Boolean(value)
+            else:
+                value = dbus.String(value)
+
+            result[key] = value
+        except AttributeError:
+            result[key] = dbus.String('')
+    return result

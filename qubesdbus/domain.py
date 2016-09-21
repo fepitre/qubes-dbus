@@ -21,6 +21,7 @@
 import logging
 
 import dbus.service
+from qubesdbus import serialize
 from systemd.journal import JournalHandler
 
 try:
@@ -86,34 +87,13 @@ class Domain(dbus.service.Object):
         self.bus_path = '/'.join([path_prefix, 'domains', str(domain.qid)])
         self.bus_name = bus_name
         self.bus = bus
-        self.properties = {'state': 'halted'}
+        self.properties = serialize.domain(domain)
         self.qid = str(domain.qid)
         logger_name = 'qubesdbus.domain.' + self.qid
         self.log = logging.getLogger(logger_name)
         self.log.addHandler(
             JournalHandler(level=logging.DEBUG, SYSLOG_IDENTIFIER=logger_name))
 
-        for p_name in DOMAIN_PROPERTIES:
-            try:
-                value = getattr(domain, p_name)
-                if callable(value):
-                    value = value()
-                if isinstance(value, dict):
-                    value = dbus.Dictionary(value)
-                elif isinstance(value, bool):
-                    value = dbus.Boolean(value)
-                else:
-                    value = dbus.String(value)
-                if p_name in DOMAIN_STATE_PROPERTIES:
-                    if value:
-                        self.properties['state'] = p_name.split('_', 1)[1]
-                elif p_name.startswith("is_"):
-                    _, new_name = p_name.split("_", 1)
-                    self.properties[new_name] = value
-                else:
-                    self.properties[p_name] = value
-            except AttributeError:
-                self.properties[p_name] = ''
         dbus.service.Object.__init__(self, self.bus_name, self.bus_path)
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
