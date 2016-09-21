@@ -28,13 +28,13 @@ import qubes
 from gi.repository import GLib
 from systemd.journal import JournalHandler
 
-from qubesdbus.interface import _QubesDbusInterface
-from qubesdbus.service import _DbusServiceObject
+from qubesdbus.service import PropertiesObject
 from qubesdbus.domain import Domain
+import qubesdbus.serialize
 
 try:
-    # Check for mypy dependencies pylint: disable=ungrouped-imports
-    from typing import Any  # pylint: disable=unused-import
+    # Check mypy types. pylint: disable=ungrouped-imports, unused-import
+    from typing import Any, Union
 except ImportError:
     pass
 
@@ -44,21 +44,11 @@ log.addHandler(
                    SYSLOG_IDENTIFIER='qubesdbus.domain_manager'))
 log.propagate = True
 
-INTERESTING_PROPERTIES = ['clockvm', 'default_dispvm', 'default_fw_netvm',
-                          'default_kernel', 'default_netvm',
-                          'default_template', 'updatevm']
-
-class DomainManager(_DbusServiceObject, _QubesDbusInterface):
-    def __init__(self, app):
-        super(DomainManager, self).__init__()
-        self.properties = {}  # type: Dict[str, Any]
-        self.identifier = str(app)
-        self.domains = self.proxify_domains(app.domains)
-        for p_name in INTERESTING_PROPERTIES:
-            try:
-                self.properties[p_name] = str(getattr(app, p_name))
-            except AttributeError:
-                self.properties[p_name] = ''
+class DomainManager(PropertiesObject):
+    def __init__(self, data, domains):
+        # type: (Dict[dbus.String, Any], List[Dict[Union[str,dbus.String], Any]]) -> None
+        super(DomainManager, self).__init__('DomainManager1', data)
+        self.domains = [self._proxify_domain(vm) for vm in domains]
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.ObjectManager")
     def GetManagedObjects(self):
@@ -70,38 +60,18 @@ class DomainManager(_DbusServiceObject, _QubesDbusInterface):
                 "%s.domains.%s" % (self.bus_name._name, d.qid)
                 for d in self.domains}
 
-    @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
-    def Get(self, _, property_name):
-        return self.properties[property_name]
-
-    @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
-    def GetAll(self, _):
-        return self.properties
-
-    @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
-    def Set(self, _, property_name, value):
-        log.info('%s: Property changed %s = %s', self.identifier,
-                 property_name, value)
-        self.properties[property_name] = value
-
-    def proxify_domains(self, domains):
-        result = []
-        for vm in domains:
-            vm_proxy = Domain(vm, self.bus, self.bus_name, self.bus_path)
-            result.append(vm_proxy)
-        return result
-
-    @dbus.service.method(dbus_interface="org.qubes.Signals1",
-                         in_signature='sava{sv}')
-    def ForwardSignal(self, event_name, args=None, kwargs=None):
-        log.warn('Unknown signal %s received %s', event_name, self.identifier)
+    def _proxify_domain(self, vm):
+        # type: (Dict[Union[str,dbus.String], Any]) -> Domain
+        return Domain(self.bus, self.bus_name, self.bus_path, vm)
 
 
 def main(args=None):
     ''' Main function '''  # pylint: disable=unused-argument
     loop = GLib.MainLoop()
     app = qubes.Qubes()
-    _ = DomainManager(app)
+    data = qubesdbus.serialize.qubes(app)
+    domains = [qubesdbus.serialize.domain(vm) for vm in app.domains]
+    _ = DomainManager(data, domains)
     print("Service running...")
     loop.run()
     print("Service stopped")
