@@ -55,9 +55,9 @@ class DomainManager(PropertiesObject):
         ''' Returns the domain objects paths and their supported interfaces and
             properties.
         '''
-        return {"%s/domains/%s" % (self.bus_path, d.qid):
+        return {"%s/domains/%s" % (self.bus_path, d.properties['qid']):
                 # pylint: disable=protected-access
-                "%s.domains.%s" % (self.bus_name._name, d.qid)
+                "%s.domains.%s" % (self.bus_name._name, d.properties['qid'])
                 for d in self.domains}
 
     def _proxify_domain(self, vm):

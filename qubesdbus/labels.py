@@ -60,13 +60,6 @@ class Label(PropertiesObject):
         super(Label, self).__init__(name, data, bus=bus, bus_name=bus_name,
                                     bus_path=bus_path)
 
-    @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
-    def GetAll(self, _):
-        # According to the dbus spec we should be able to return types not only
-        # string, but it doesn't work. We need to serialize everything to string ☹
-        return dbus.Dictionary({k: dbus.String(v)
-                                for k, v in self.properties.items()})
-
 
 def main(args=None):
     ''' Main function '''  # pylint: disable=unused-argument

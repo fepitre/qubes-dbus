@@ -84,6 +84,14 @@ class PropertiesObject(DbusServiceObject):
         return self.properties[property_name]
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
+    def GetAll(self, _):
+        # According to the dbus spec we should be able to return types not only
+        # string, but it doesn't work. We need to serialize everything to string
+        # ☹
+        return dbus.Dictionary({k: dbus.String(v)
+                                for k, v in self.properties.items()})
+
+    @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
     def Set(self, _, name, value):  # type: (str, dbus.String, Any) -> None
         new_value = value
         old_value = self.properties[name]

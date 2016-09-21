@@ -80,7 +80,15 @@ class QubesDbusProxy(Extension):
 
     @handler('*', system=True)
     def forward_app_event(self, vm, event, *args, **kwargs):
-        log.debug('A: %s %s %s %s', vm, event, args, kwargs)
+        if is_garbage(event):
+            log.debug('Drop %s from %s', event, vm)
+            return
+        elif event.startswith('property-set:'):
+            proxy = app_proxy()
+            property_set(proxy, args[0], str(args[1]))
+            log.info('App: %s %s %s %s', vm, event, args, kwargs)
+        else:
+            log.warn('Unknown %s from %s', event, vm)
 
 
 def property_set(proxy, name, value):
