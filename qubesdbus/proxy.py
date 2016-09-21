@@ -24,6 +24,7 @@ import logging
 
 import dbus
 from qubes import Qubes
+from qubes.ext import Extension, handler
 from qubes.vm.qubesvm import QubesVM
 from systemd.journal import JournalHandler
 
@@ -37,8 +38,9 @@ except ImportError:
     pass
 
 log = logging.getLogger('qubesdbus.proxy')
-log.addHandler(JournalHandler(SYSLOG_IDENTIFIER='qubesdbus.proxy'))
-log.setLevel(logging.DEBUG)
+log.addHandler(
+    JournalHandler(level=logging.DEBUG, SYSLOG_IDENTIFIER='qubesdbus.proxy'))
+log.propagate = False
 
 INTERFACE_NAME = "%s.QubesSignals%s" % (NAME_PREFIX, VERSION)
 SESSION_BUS = dbus.SessionBus()
@@ -49,74 +51,43 @@ GARBAGE = [
 ]
 
 
-class QubesDbusProxy(object):
-    # pylint: disable=too-few-public-methods
-    def __init__(self, *args, **kwargs):
-        super(QubesDbusProxy, self).__init__(*args, **kwargs)
+def is_garbage(event):
+    if event in ['domain-load', 'domain-init']:
+        return True
+    elif event.startswith('property-pre-set'):
+        return True
+    else:
+        return False
+
+
+class QubesDbusProxy(Extension):
+    # pylint: disable=too-few-public-methods,no-self-use
+    def __init__(self):
+        super(QubesDbusProxy, self).__init__()
         self.domains = {}  # type: Dict[int, bool]
 
-    def forward(self, obj, event_name, *args, **kwargs):
-        # type: (Union[Qubes, QubesVM], str, *Any, **Any) -> None
-        # pylint: disable=redefined-variable-type
-        if isinstance(obj, QubesVM):
-            # let's play a game called guess in which state is the domain?
-            if not hasattr(obj, 'qid'):
-                # just reading domain from qubes.xml and preparing for
-                # populating it, we can ignore this event
-                log.info('%s some domain', event_name)
-                return
-            else:
-                qid = obj.qid
-                log.info('Received %s => %s', qid, event_name)
-                if qid not in self.domains.keys():
-                    self.domains[qid] = False
+    @handler('*')
+    def forward_vm_event(self, vm, event, *args, **kwargs):
+        if is_garbage(event):
+            log.debug('Drop %s from %s', event, vm)
+            return
+        elif event.startswith('property-set:'):
+            proxy = vm_proxy(vm.qid)
+            property_set(proxy, args[0], str(args[1]))
+            log.info('VM: %s %s %s %s', vm, event, args, kwargs)
+        else:
+            log.warn('Unknown %s from %s', event, vm)
 
-                if event_name == 'domain-load':
-                    self.domains[qid] = True
+    @handler('*', system=True)
+    def forward_app_event(self, vm, event, *args, **kwargs):
+        log.debug('A: %s %s %s %s', vm, event, args, kwargs)
 
-                if self.domains[qid]:
-                    log.info("Would forward event to existing domain %s", qid)
-        try:
-            args = serialize(args)
-            kwargs = zip(kwargs.keys(), serialize(kwargs.values()))
-            log.info("%s : %s : %s", event_name, args, kwargs)
-        except TypeError as ex:
-            msg = "%s: %s" % (event_name, ex.message)
-            log.error(msg)
 
-    @staticmethod
-    def old_forward(obj, event_name, *args, **kwargs):
-        # pylint: disable=redefined-variable-type
-        try:
-            proxy = get_proxy(obj)
-            if event_name.startswith('property-set'):
-                log.debug('Received %s from %s', event_name, obj)
-                p_name = args[0]
-                p_value = str(args[1])
-                set_method = proxy.get_dbus_method(
-                    'Set', 'org.freedesktop.DBus.Properties')
-                set_method('', p_name, p_value)
-            elif event_name in GARBAGE:
-                log.debug("Droping event %s", event_name)
-            elif isinstance(obj, QubesVM):
-                log.debug("Forwarding event %s", event_name)
-                forward_signal_func = proxy.get_dbus_method(
-                    'ForwardSignal', 'org.qubes.Signals')
-                if not args:
-                    args = ['']
-                if not kwargs:
-                    kwargs = {'fpp': 'bar'}
-
-                forward_signal_func(event_name, args, kwargs)
-            else:
-                log.info("Do not know how to handle %s event", event_name)
-                if args:
-                    log.info(args)
-                if kwargs:
-                    log.warn(kwargs)
-        except TypeError as ex:
-            msg = "%s: %s" % (event_name, ex.message)
-            log.error(msg)
+def property_set(proxy, name, value):
+    # type: (dbus.proxies.ProxyObject, str, Any) -> None
+    ''' Helper for setting a property on a helper '''
+    func = proxy.get_dbus_method('Set', 'org.freedesktop.DBus.Properties')
+    func('', name, value)
 
 
 def serialize(args):
@@ -127,6 +98,16 @@ def serialize(args):
         else:
             str(val)
     return result
+
+
+def vm_proxy(qid):
+    # type: (int) -> dbus.proxies.ProxyObject
+    domain_path = '/'.join([MANAGER_PATH, 'domains', str(qid)])
+    return SESSION_BUS.get_object(MANAGER_NAME, domain_path)
+
+
+def app_proxy():
+    return SESSION_BUS.get_object(MANAGER_NAME, MANAGER_PATH)
 
 
 def get_proxy(obj):
