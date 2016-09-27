@@ -108,7 +108,7 @@ class QubesDbusProxy(Extension):
                          qubesdbus.serialize.serialize_val(args[1]))
             log.info('App: %s %s %s %s', vm, event, args, kwargs)
         elif event == 'domain-delete':
-            func = proxy.get_dbus_method('DelDomain',
+            func = proxy.get_dbus_method('RemoveDomain',
                                          'org.qubes.DomainManager1')
             vm = args[0]
             vm_dbus_path = '/org/qubes/DomainManager1/domains/%s' % vm.qid

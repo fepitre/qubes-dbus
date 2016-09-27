@@ -87,7 +87,7 @@ class DomainManager(PropertiesObject):
 
     @dbus.service.method(dbus_interface='org.qubes.DomainManager1',
                          in_signature='ob', out_signature='b')
-    def DelDomain(self, vm_dbus_path, execute=False):
+    def RemoveDomain(self, vm_dbus_path, execute=False):
         # type: (dbus.ObjectPath, bool) -> bool
         if execute:
             log.error('Creating domains via DBus is not implemented yet')
