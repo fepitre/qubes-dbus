@@ -28,9 +28,9 @@ import qubes
 from gi.repository import GLib
 from systemd.journal import JournalHandler
 
-from qubesdbus.service import PropertiesObject
-from qubesdbus.domain import Domain
 import qubesdbus.serialize
+from qubesdbus.domain import Domain
+from qubesdbus.service import PropertiesObject
 
 try:
     # Check mypy types. pylint: disable=ungrouped-imports, unused-import
@@ -43,6 +43,7 @@ log.addHandler(
     JournalHandler(level=logging.DEBUG,
                    SYSLOG_IDENTIFIER='qubesdbus.domain_manager'))
 log.propagate = True
+
 
 class DomainManager(PropertiesObject):
     def __init__(self, data, domains):
@@ -59,6 +60,33 @@ class DomainManager(PropertiesObject):
                 # pylint: disable=protected-access
                 "%s.domains.%s" % (self.bus_name._name, d.properties['qid'])
                 for d in self.domains}
+
+    @dbus.service.method(dbus_interface='org.qubes.DomainManager1',
+                         in_signature='a{sv}b')
+    def AddDomain(self, vm, execute=False):
+        # type: (Dict[dbus.String, Any], bool) -> bool
+        if execute:
+            log.error('Creating domains via DBus is not implemented yet')
+            return False
+        else:
+            vm['qid'] = len(self.domains)
+            self.domains.append(self._proxify_domain(vm))
+            log.info('Added domain %s', vm['name'])
+            return True
+
+    @dbus.service.method(dbus_interface='org.qubes.DomainManager1',
+                         in_signature='ob', out_signature='b')
+    def DelDomain(self, vm_dbus_path, execute=False):
+        # type: (dbus.ObjectPath, bool) -> bool
+        if execute:
+            log.error('Creating domains via DBus is not implemented yet')
+            return False
+        for vm in self.domains:
+            if vm._object_path == vm_dbus_path:  # pylint: disable=protected-access
+                vm.remove_from_connection()
+                self.domains.remove(vm)
+                return True
+        return False
 
     def _proxify_domain(self, vm):
         # type: (Dict[Union[str,dbus.String], Any]) -> Domain

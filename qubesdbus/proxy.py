@@ -28,6 +28,8 @@ from qubes.ext import Extension, handler
 from qubes.vm.qubesvm import QubesVM
 from systemd.journal import JournalHandler
 
+import qubesdbus.serialize
+
 from .constants import NAME_PREFIX, PATH_PREFIX, VERSION
 
 try:
@@ -39,7 +41,7 @@ except ImportError:
 
 log = logging.getLogger('qubesdbus.proxy')
 log.addHandler(
-    JournalHandler(level=logging.DEBUG, SYSLOG_IDENTIFIER='qubesdbus.proxy'))
+    JournalHandler(level=logging.INFO, SYSLOG_IDENTIFIER='qubesdbus.proxy'))
 log.propagate = False
 
 INTERFACE_NAME = "%s.QubesSignals%s" % (NAME_PREFIX, VERSION)
@@ -48,11 +50,12 @@ MANAGER_NAME = "%s.DomainManager%s" % (NAME_PREFIX, VERSION)
 MANAGER_PATH = "%s/DomainManager%s" % (PATH_PREFIX, VERSION)
 GARBAGE = [
     'domain-is-fully-usable',  # only important for internal core-admin?
+    'domain-add'
 ]
 
 
 def is_garbage(event):
-    if event in ['domain-load', 'domain-init']:
+    if event in ['domain-load']:
         return True
     elif event.startswith('property-pre-set'):
         return True
@@ -65,30 +68,56 @@ class QubesDbusProxy(Extension):
     def __init__(self):
         super(QubesDbusProxy, self).__init__()
         self.domains = {}  # type: Dict[int, bool]
+        self.new_vm = []
 
     @handler('*')
     def forward_vm_event(self, vm, event, *args, **kwargs):
         if is_garbage(event):
             log.debug('Drop %s from %s', event, vm)
             return
-        elif event.startswith('property-set:'):
+        elif event.startswith('property-set:') and not self.new_vm:
             proxy = vm_proxy(vm.qid)
-            property_set(proxy, args[0], str(args[1]))
+            property_set(proxy, args[0],
+                         qubesdbus.serialize.serialize_val(args[1]))
             log.info('VM: %s %s %s %s', vm, event, args, kwargs)
+        elif event == 'domain-init' and vm.storage is None:
+            # looks like a new vm is created
+            self.new_vm.append(vm)
+            log.info('VM %s creation begins', vm)
+        elif event == 'domain-create-on-disk':
+            proxy = app_proxy()
+            func = proxy.get_dbus_method('AddDomain',
+                                         'org.qubes.DomainManager1')
+            data = qubesdbus.serialize.serialize_val(vm)
+            create = False
+            if not func(data, create):
+                log.error('Could not add vm via to dbus DomainManager')
+            log.info('Added VM %s', data)
+            self.new_vm.remove(vm)
         else:
-            log.warn('Unknown %s from %s', event, vm)
+            log.warn('Unknown %s from %s %s %s', event, vm, args, kwargs)
 
     @handler('*', system=True)
     def forward_app_event(self, vm, event, *args, **kwargs):
+        proxy = app_proxy()
         if is_garbage(event):
             log.debug('Drop %s from %s', event, vm)
             return
         elif event.startswith('property-set:'):
-            proxy = app_proxy()
-            property_set(proxy, args[0], str(args[1]))
+            property_set(proxy, args[0],
+                         qubesdbus.serialize.serialize_val(args[1]))
             log.info('App: %s %s %s %s', vm, event, args, kwargs)
+        elif event == 'domain-delete':
+            func = proxy.get_dbus_method('DelDomain',
+                                         'org.qubes.DomainManager1')
+            vm = args[0]
+            vm_dbus_path = '/org/qubes/DomainManager1/domains/%s' % vm.qid
+
+            if not func(vm_dbus_path, False):
+                log.error('Could not add vm via to dbus DomainManager')
+            log.info("Removed VM %s", vm)
         else:
-            log.warn('Unknown %s from %s', event, vm)
+            log.warn('Unknown %s from %s %s %s', event, vm, args, kwargs)
 
 
 def property_set(proxy, name, value):
