@@ -21,10 +21,10 @@
 from __future__ import absolute_import
 
 from .constants import * # pylint: disable=wildcard-import
-from .proxy import QubesDbusProxy
 from .domain import Domain
 from .domain_manager import DomainManager
 from .labels import Labels
 from .constants import NAME_PREFIX, PATH_PREFIX, VERSION
 from .exceptions import QubesDbusException
+from .proxy import QubesDbusProxy
 from . import serialize
