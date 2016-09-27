@@ -19,6 +19,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import dbus
+import qubes
+import qubes.vm.qubesvm
+
+from libvirt import libvirtError  # pylint: disable=import-error
 
 try:
     # Check mypy dependencies. pylint: disable=ungrouped-imports,unused-import
@@ -100,7 +104,7 @@ def qubes_data(app):
 def domain_data(vm):
     ''' Serializes a `qubes.vm.qubesvm.QubesVM` to a dictionary '''
     # type: (QubesVM) -> Dict[dbus.String, Any]
-    result = {dbus.String('state'): 'halted'}
+    result = dbus.Dictionary({'state': 'halted'}, signature='sv')
     for name in DOMAIN_PROPERTIES:
         if name in DOMAIN_STATE_PROPERTIES:
             key = 'state'
@@ -111,16 +115,16 @@ def domain_data(vm):
 
         key = dbus.String(key)
         try:
-            value = getattr(vm, name)
-            if isinstance(value, dict):
-                value = dbus.Dictionary(value)
-            elif isinstance(value, bool):
-                value = dbus.Boolean(value)
+            tmp = getattr(vm, name)
+            if tmp is None:
+                value = dbus.String('')
+            if isinstance(tmp, qubes.vm.qubesvm.QubesVM):
+                value = serialize_val(str(tmp))
             else:
-                value = dbus.String(value)
+                value = serialize_val(tmp)
 
             result[key] = value
-        except AttributeError:
+        except (AttributeError, libvirtError):
             result[key] = dbus.String('')
     return result
 
@@ -137,3 +141,27 @@ def label_data(lab):
         except AttributeError:
             result[name] = ''
     return result
+
+
+def serialize_val(value):
+    # pylint: disable=too-many-return-statements
+    if isinstance(value, dict):
+        return dbus.Dictionary(value, signature='sv')
+    elif isinstance(value, bool):
+        return dbus.Boolean(value)
+    elif isinstance(value, int):
+        return dbus.Int32(value)
+    elif callable(value):
+        return serialize_val(value())
+    elif isinstance(value, qubes.Label):
+        return label_path(value)
+    elif isinstance(value, qubes.vm.qubesvm.QubesVM):
+        return domain_data(value)
+    elif isinstance(value, qubes.Qubes):
+        return qubes_data(value)
+    else:
+        return dbus.String(value)
+
+
+def label_path(label):
+    return dbus.ObjectPath('/org/qubes/Labels1/labels/' + label.name)
