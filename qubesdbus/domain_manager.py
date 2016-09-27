@@ -70,9 +70,20 @@ class DomainManager(PropertiesObject):
             return False
         else:
             vm['qid'] = len(self.domains)
-            self.domains.append(self._proxify_domain(vm))
+            domain = self._proxify_domain(vm)
+            self.domains.append(domain)
             log.info('Added domain %s', vm['name'])
+            # pylint: disable=protected-access
+            self.DomainAdded("org.qubes.DomainManager1", domain._object_path)
             return True
+
+    @dbus.service.signal("org.qubes.DomainManager1", signature="so")
+    def DomainAdded(self, _, object_path):
+        self.log.debug("Emiting DomainAdded signal: %s", object_path)
+
+    @dbus.service.signal("org.qubes.DomainManager1", signature="so")
+    def DomainRemoved(self, _, object_path):
+        self.log.debug("Emiting DomainRemoved signal: %s", object_path)
 
     @dbus.service.method(dbus_interface='org.qubes.DomainManager1',
                          in_signature='ob', out_signature='b')
@@ -82,9 +93,11 @@ class DomainManager(PropertiesObject):
             log.error('Creating domains via DBus is not implemented yet')
             return False
         for vm in self.domains:
-            if vm._object_path == vm_dbus_path:  # pylint: disable=protected-access
+            # pylint: disable=protected-access
+            if vm._object_path == vm_dbus_path:
                 vm.remove_from_connection()
                 self.domains.remove(vm)
+                self.DomainRemoved("org.qubes.DomainManager1", vm._object_path)
                 return True
         return False
 
