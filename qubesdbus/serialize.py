@@ -18,6 +18,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+''' Collection of serialization helpers '''
+
 import dbus
 import qubes
 import qubes.vm.qubesvm
@@ -95,16 +97,17 @@ def qubes_data(app):
     for name in QUBES_PROPERTIES:
         key = dbus.String(name)
         try:
-            result[key] = dbus.String(getattr(app, name))
+            result[key] = serialize_val(getattr(app, name))
         except AttributeError:
             result[key] = dbus.String('')
 
     return result
 
+
 def domain_data(vm):
     ''' Serializes a `qubes.vm.qubesvm.QubesVM` to a dictionary '''
     # type: (QubesVM) -> Dict[dbus.String, Any]
-    result = dbus.Dictionary({'state': 'halted'}, signature='sv')
+    result = dbus.Dictionary({'state': 'halted'}, signature='ss')
     for name in DOMAIN_PROPERTIES:
         if name in DOMAIN_STATE_PROPERTIES:
             key = 'state'
@@ -115,13 +118,8 @@ def domain_data(vm):
 
         key = dbus.String(key)
         try:
-            tmp = getattr(vm, name)
-            if tmp is None:
-                value = dbus.String('')
-            if isinstance(tmp, qubes.vm.qubesvm.QubesVM):
-                value = serialize_val(str(tmp))
-            else:
-                value = serialize_val(tmp)
+
+            value = serialize_val(getattr(vm, name))
 
             result[key] = value
         except (AttributeError, libvirtError):
@@ -130,6 +128,7 @@ def domain_data(vm):
 
 
 def label_data(lab):
+    ''' Serialize a `qubes.Label` to a dictionary '''
     # type: (Label) -> Dict[dbus.String, Any]
     result = {}
     for name in dir(lab):
@@ -144,7 +143,10 @@ def label_data(lab):
 
 
 def serialize_val(value):
+    ''' Serialize a property value '''
     # pylint: disable=too-many-return-statements
+    if value is None:
+        return dbus.String('')
     if isinstance(value, dict):
         return dbus.Dictionary(value, signature='sv')
     elif isinstance(value, bool):
@@ -156,12 +158,18 @@ def serialize_val(value):
     elif isinstance(value, qubes.Label):
         return label_path(value)
     elif isinstance(value, qubes.vm.qubesvm.QubesVM):
-        return domain_data(value)
-    elif isinstance(value, qubes.Qubes):
-        return qubes_data(value)
+        return domain_path(value)
     else:
         return dbus.String(value)
 
 
 def label_path(label):
+    # type: (qubes.Label) -> dbus.ObjectPath
+    ''' Return the D-Bus object path for a `qubes.Label` '''
     return dbus.ObjectPath('/org/qubes/Labels1/labels/' + label.name)
+
+
+def domain_path(vm):
+    ''' Return the D-Bus object path for a `qubes.vm.qubesvm.QubesVM` '''
+    # type: (qubes.vm.qubesvm.QubesVM) -> dbus.ObjectPath
+    return dbus.ObjectPath('/org/qubes/DomainManager1/domains/' + str(vm.qid))

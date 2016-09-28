@@ -76,8 +76,7 @@ class QubesDbusProxy(Extension):
             return
         elif event.startswith('property-set:') and not self.new_vm:
             proxy = vm_proxy(vm.qid)
-            property_set(proxy, args[0],
-                         qubesdbus.serialize.serialize_val(args[1]))
+            property_set(proxy, args[0], qubesdbus.serialize.serialize_val(args[1]))
             log.info('VM: %s %s %s %s', vm, event, args, kwargs)
         elif event == 'domain-init' and vm.storage is None:
             # looks like a new vm is created
@@ -87,7 +86,7 @@ class QubesDbusProxy(Extension):
             proxy = app_proxy()
             func = proxy.get_dbus_method('AddDomain',
                                          'org.qubes.DomainManager1')
-            data = qubesdbus.serialize.serialize_val(vm)
+            data = qubesdbus.serialize.domain_data(vm)
             create = False
             if not func(data, create):
                 log.error('Could not add vm via to dbus DomainManager')

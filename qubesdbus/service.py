@@ -19,7 +19,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 # pylint: disable=invalid-name
-
 ''' Service classes '''
 
 from __future__ import absolute_import
@@ -48,6 +47,7 @@ class ObjectManager(object):
     ''' Provides a class implementing the `org.freedesktop.DBus.ObjectManager`
         interface.
     '''
+
     # pylint: disable=too-few-public-methods
     def __init__(self, *args, **kwargs):
         super(ObjectManager, self).__init__(*args, **kwargs)
@@ -66,6 +66,7 @@ class ObjectManager(object):
 class DbusServiceObject(dbus.service.Object):
     ''' A class implementing a useful shortcut for writing own D-Bus Services
     '''
+
     def __init__(self, bus=None, bus_name=None, bus_path=None):
         # type: (SessionBus, BusName, str) -> None
         if bus is not None:
@@ -109,14 +110,11 @@ class PropertiesObject(DbusServiceObject):
         ''' Returns the property value '''
         return self.properties[property_name]
 
-    @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
+    @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties",
+                         in_signature='s', out_signature='a{sv}')
     def GetAll(self, _):
         ''' Returns all properties and their values '''
-        # According to the dbus spec we should be able to return types not only
-        # string, but it doesn't work. We need to serialize everything to string
-        # ☹
-        return dbus.Dictionary({k: dbus.String(v)
-                                for k, v in self.properties.items()})
+        return self.properties
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
     def Set(self, _, name, value):  # type: (str, dbus.String, Any) -> None
