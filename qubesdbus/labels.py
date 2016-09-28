@@ -24,38 +24,30 @@ from __future__ import absolute_import, print_function
 import logging
 import sys
 
-import dbus.service
 import qubes
 from gi.repository import GLib
 from systemd.journal import JournalHandler
 
 import qubesdbus.serialize
-from qubesdbus.service import DbusServiceObject, PropertiesObject
+from qubesdbus.service import (DbusServiceObject, ObjectManager,
+                               PropertiesObject)
 
 log = logging.getLogger('org.qubes.Labels1')
 log.addHandler(JournalHandler(SYSLOG_IDENTIFIER='qubesdbus.labels'))
 log.setLevel(logging.INFO)
 
 
-class Labels(DbusServiceObject):
+class Labels(DbusServiceObject, ObjectManager):
     ''' A `org.freedesktop.DBus.ObjectManager` interface implementation, for
 	acquiring all the labels.
     '''
 
     def __init__(self, labels_data):
         super(Labels, self).__init__()
-        self.labels = dbus.Array()
-        for data in labels_data:
-            proxy = Label(self.bus, self.bus_name, self.bus_path, data)
-            self.labels.append(proxy)
+        self.managed_objects = [self._new_label(d) for d in labels_data]
 
-    @dbus.service.method(dbus_interface="org.freedesktop.DBus.ObjectManager")
-    def GetManagedObjects(self):
-        ''' Returns all the labels.
-        '''
-        return {"%s/labels/%s" % (self.bus_path, l.properties['name']):
-                "%s.labels.%s" % (self.bus_name, l.properties['name'])
-                for l in self.labels}
+    def _new_label(self, label_data):
+        return Label(self.bus, self.bus_name, self.bus_path, label_data)
 
 
 class Label(PropertiesObject):
@@ -66,8 +58,8 @@ class Label(PropertiesObject):
     def __init__(self, bus, bus_name, bus_path, data):
         bus_path = '/'.join([bus_path, 'labels', data['name']])
         name = data['name']
-        super(Label, self).__init__(name, data, bus=bus, bus_name=bus_name,
-                                    bus_path=bus_path)
+        super(Label, self).__init__(name, 'org.qubes.Label1', data, bus=bus,
+                                    bus_name=bus_name, bus_path=bus_path)
 
 
 def main(args=None):

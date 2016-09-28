@@ -43,7 +43,7 @@ class Domain(qubesdbus.service.PropertiesObject):
         self.properties = data
         bus_path = '/'.join([bus_path, 'domains', str(data['qid'])])
         name = data['name']
-        super(Domain, self).__init__(name, data, bus=bus, bus_name=bus_name,
+        super(Domain, self).__init__(name, 'org.qubes.Domain1', data, bus=bus, bus_name=bus_name,
                                      bus_path=bus_path)
 
     @dbus.service.signal(

@@ -31,7 +31,7 @@ from systemd.journal import JournalHandler
 
 import qubesdbus.serialize
 from qubesdbus.domain import Domain
-from qubesdbus.service import PropertiesObject
+from qubesdbus.service import ObjectManager, PropertiesObject
 
 try:
     # Check mypy types. pylint: disable=ungrouped-imports, unused-import
@@ -46,7 +46,7 @@ log.addHandler(
 log.propagate = True
 
 
-class DomainManager(PropertiesObject):
+class DomainManager(PropertiesObject, ObjectManager):
     ''' The `DomainManager` is the equivalent to the `qubes.Qubes` object for
         managing domains. Implements:
             * `org.freedesktop.DBus.ObjectManager` interface for acquiring all the
@@ -57,18 +57,9 @@ class DomainManager(PropertiesObject):
 
     def __init__(self, data, domains):
         # type: (Dict[dbus.String, Any], List[Dict[Union[str,dbus.String], Any]]) -> None
-        super(DomainManager, self).__init__('DomainManager1', data)
-        self.domains = [self._proxify_domain(vm) for vm in domains]
-
-    @dbus.service.method(dbus_interface="org.freedesktop.DBus.ObjectManager")
-    def GetManagedObjects(self):
-        ''' Returns the domain objects paths and their supported interfaces and
-            properties.
-        '''
-        return {"%s/domains/%s" % (self.bus_path, d.properties['qid']):
-                # pylint: disable=protected-access
-                "%s.domains.%s" % (self.bus_name._name, d.properties['qid'])
-                for d in self.domains}
+        super(DomainManager, self).__init__('DomainManager1',
+                                            'org.qubes.DomainManager1', data)
+        self.managed_objects = [self._proxify_domain(vm) for vm in domains]
 
     @dbus.service.method(dbus_interface='org.qubes.DomainManager1',
                          in_signature='a{sv}b')
@@ -82,9 +73,9 @@ class DomainManager(PropertiesObject):
             log.error('Creating domains via DBus is not implemented yet')
             return False
         else:
-            vm['qid'] = len(self.domains)
+            vm['qid'] = len(self.managed_objects)
             domain = self._proxify_domain(vm)
-            self.domains.append(domain)
+            self.managed_objects.append(domain)
             log.info('Added domain %s', vm['name'])
             # pylint: disable=protected-access
             self.DomainAdded("org.qubes.DomainManager1", domain._object_path)
@@ -111,11 +102,11 @@ class DomainManager(PropertiesObject):
         if execute:
             log.error('Creating domains via DBus is not implemented yet')
             return False
-        for vm in self.domains:
+        for vm in self.managed_objects:
             # pylint: disable=protected-access
             if vm._object_path == vm_dbus_path:
                 vm.remove_from_connection()
-                self.domains.remove(vm)
+                self.managed_objects.remove(vm)
                 self.DomainRemoved("org.qubes.DomainManager1", vm._object_path)
                 return True
         return False

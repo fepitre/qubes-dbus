@@ -18,7 +18,9 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# pylint: disable=missing-docstring,invalid-name
+# pylint: disable=invalid-name
+
+''' Service classes '''
 
 from __future__ import absolute_import
 
@@ -40,6 +42,25 @@ try:
     from dbus.service import BusName
 except ImportError:
     pass
+
+
+class ObjectManager(object):
+    ''' Provides a class implementing the `org.freedesktop.DBus.ObjectManager`
+        interface.
+    '''
+    # pylint: disable=too-few-public-methods
+    def __init__(self, *args, **kwargs):
+        super(ObjectManager, self).__init__(*args, **kwargs)
+        self.managed_objects = []  # type: PropertiesObject
+
+    @dbus.service.method(dbus_interface="org.freedesktop.DBus.ObjectManager",
+                         out_signature="a{oa{sa{sv}}}")
+    def GetManagedObjects(self):
+        ''' Returns the domain objects paths and their supported interfaces and
+            properties.
+        '''  # pylint: disable=protected-access
+        return {o._object_path: o.properties_iface()
+                for o in self.managed_objects}
 
 
 class DbusServiceObject(dbus.service.Object):
@@ -69,9 +90,10 @@ class DbusServiceObject(dbus.service.Object):
 class PropertiesObject(DbusServiceObject):
     # pylint: disable=invalid-name
 
-    def __init__(self, name, data, *args, **kwargs):
+    def __init__(self, name, iface, data, *args, **kwargs):
         self.properties = data
         self.id = name
+        self.iface = iface
         self.log = logging.getLogger(name)
         self.log.addHandler(
             JournalHandler(level=logging.DEBUG, SYSLOG_IDENTIFIER='qubesdbus.'
@@ -106,6 +128,13 @@ class PropertiesObject(DbusServiceObject):
     @dbus.service.signal(dbus_interface='org.freedesktop.DBus.Properties',
                          signature="sa{sv}as")
     def PropertiesChanged(self, _, changed_properties, __=None):
+        ''' This signal is emitted when a property changes '''
         # type: (str, Dict[dbus.String, Any], List[dbus.String]) -> None
         for name, value in changed_properties.items():
             self.log.debug('%s: Property %s changed %s', self.id, name, value)
+
+    def properties_iface(self):
+        ''' A helper for wrapping the interface around properties. Used by
+            `ObjectManager.GetManagedObjects`
+        '''
+        return {self.iface: self.properties}
