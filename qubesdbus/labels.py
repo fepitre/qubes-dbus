@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+''' org.qubes.Labels1 service '''
 
 from __future__ import absolute_import, print_function
 
@@ -37,6 +38,10 @@ log.setLevel(logging.INFO)
 
 
 class Labels(DbusServiceObject):
+    ''' A `org.freedesktop.DBus.ObjectManager` interface implementation, for
+	acquiring all the labels.
+    '''
+
     def __init__(self, labels_data):
         super(Labels, self).__init__()
         self.labels = dbus.Array()
@@ -54,6 +59,10 @@ class Labels(DbusServiceObject):
 
 
 class Label(PropertiesObject):
+    ''' Represents a qubes label. Its D-Bus object path is
+	`org/qubes/Labels1/labels/COLORNAME`
+    '''
+
     def __init__(self, bus, bus_name, bus_path, data):
         bus_path = '/'.join([bus_path, 'labels', data['name']])
         name = data['name']

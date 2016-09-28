@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+''' org.qubes.DomainManager1 Service '''
 
 from __future__ import absolute_import, print_function
 
@@ -46,6 +47,14 @@ log.propagate = True
 
 
 class DomainManager(PropertiesObject):
+    ''' The `DomainManager` is the equivalent to the `qubes.Qubes` object for
+        managing domains. Implements:
+            * `org.freedesktop.DBus.ObjectManager` interface for acquiring all the
+               domains.
+            * `org.freedesktop.DBus.Properties` for accessing `qubes.Qubes`
+               properties
+    '''
+
     def __init__(self, data, domains):
         # type: (Dict[dbus.String, Any], List[Dict[Union[str,dbus.String], Any]]) -> None
         super(DomainManager, self).__init__('DomainManager1', data)
@@ -64,7 +73,11 @@ class DomainManager(PropertiesObject):
     @dbus.service.method(dbus_interface='org.qubes.DomainManager1',
                          in_signature='a{sv}b')
     def AddDomain(self, vm, execute=False):
-        # type: (Dict[dbus.String, Any], bool) -> bool
+        ''' Notify the `DomainManager` when a domain is added. This is
+            called by `QubesDbusProxy` when 'domain-create-on-disk' event
+            arrives from `core-admin`. UI programs which need to create an
+            actual vm should set `execute` to True.
+        ''' # type: (Dict[dbus.String, Any], bool) -> bool
         if execute:
             log.error('Creating domains via DBus is not implemented yet')
             return False
@@ -79,16 +92,22 @@ class DomainManager(PropertiesObject):
 
     @dbus.service.signal("org.qubes.DomainManager1", signature="so")
     def DomainAdded(self, _, object_path):
+        ''' This signal is emitted when a new domain is added '''
         self.log.debug("Emiting DomainAdded signal: %s", object_path)
 
     @dbus.service.signal("org.qubes.DomainManager1", signature="so")
     def DomainRemoved(self, _, object_path):
+        ''' This signal is emitted when a new domain is removed '''
         self.log.debug("Emiting DomainRemoved signal: %s", object_path)
 
     @dbus.service.method(dbus_interface='org.qubes.DomainManager1',
                          in_signature='ob', out_signature='b')
     def RemoveDomain(self, vm_dbus_path, execute=False):
-        # type: (dbus.ObjectPath, bool) -> bool
+        ''' Notify the `DomainManager` when a domain is removed. This is
+            called by `QubesDbusProxy` when 'domain-deleted' event
+            arrives from `core-admin`. UI programs which need to remove an
+            actual vm should set `execute` to True.
+        ''' # type: (dbus.ObjectPath, bool) -> bool
         if execute:
             log.error('Creating domains via DBus is not implemented yet')
             return False
@@ -106,8 +125,8 @@ class DomainManager(PropertiesObject):
         return Domain(self.bus, self.bus_name, self.bus_path, vm)
 
 
-def main(args=None):
-    ''' Main function '''  # pylint: disable=unused-argument
+def main(args=None):  # pylint: disable=unused-argument
+    ''' Main function starting the DomainManager1 service. '''
     loop = GLib.MainLoop()
     app = qubes.Qubes()
     data = qubesdbus.serialize.qubes_data(app)

@@ -18,6 +18,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+''' D-Bus Domain object '''
+
 import dbus.service
 
 import qubesdbus.service
@@ -33,6 +35,9 @@ except ImportError:
 
 
 class Domain(qubesdbus.service.PropertiesObject):
+    ''' `Domain` is managed by `DomainManager1` and represents a domain. Its D-Bus
+        object path is `/org/qubes/DomainManager1/domains/QID`
+    '''
     def __init__(self, bus, bus_name, bus_path, data):
         # type: (SessionBus, BusName , str, Dict[Union[str,dbus.String], Any]) -> None
         self.properties = data
