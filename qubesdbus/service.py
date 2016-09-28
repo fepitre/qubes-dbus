@@ -64,6 +64,8 @@ class ObjectManager(object):
 
 
 class DbusServiceObject(dbus.service.Object):
+    ''' A class implementing a useful shortcut for writing own D-Bus Services
+    '''
     def __init__(self, bus=None, bus_name=None, bus_path=None):
         # type: (SessionBus, BusName, str) -> None
         if bus is not None:
@@ -83,12 +85,13 @@ class DbusServiceObject(dbus.service.Object):
             _name = ''.join([NAME_PREFIX, '.', self.__class__.__name__,
                              str(VERSION)])
             self.bus_name = dbus.service.BusName(_name, self.bus)
-        # avoid pylint super-on-old-class error
+    # avoid pylint super-on-old-class error
         dbus.service.Object.__init__(self, self.bus_name, self.bus_path)
 
 
 class PropertiesObject(DbusServiceObject):
     # pylint: disable=invalid-name
+    ''' Implements `org.freedesktop.DBus.Properties` interface. '''
 
     def __init__(self, name, iface, data, *args, **kwargs):
         self.properties = data
@@ -103,10 +106,12 @@ class PropertiesObject(DbusServiceObject):
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
     def Get(self, _, property_name):
+        ''' Returns the property value '''
         return self.properties[property_name]
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
     def GetAll(self, _):
+        ''' Returns all properties and their values '''
         # According to the dbus spec we should be able to return types not only
         # string, but it doesn't work. We need to serialize everything to string
         # ☹
@@ -115,6 +120,7 @@ class PropertiesObject(DbusServiceObject):
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
     def Set(self, _, name, value):  # type: (str, dbus.String, Any) -> None
+        ''' Set a property value '''
         new_value = value
         old_value = self.properties[name]
         if new_value == old_value:

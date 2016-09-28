@@ -35,7 +35,6 @@ from .constants import NAME_PREFIX, PATH_PREFIX, VERSION
 try:
     # Check for mypy dependencies pylint: disable=ungrouped-imports
     from typing import Any, Optional, Union  # pylint: disable=unused-import
-    from qubesdbus.service import _DbusServiceObject  # pylint:disable=unused-import
 except ImportError:
     pass
 
