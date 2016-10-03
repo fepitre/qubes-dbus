@@ -33,56 +33,6 @@ try:
 except ImportError:
     pass
 
-QUBES_PROPERTIES = ['clockvm', 'default_dispvm', 'default_fw_netvm',
-                    'default_kernel', 'default_netvm', 'default_template',
-                    'updatevm']
-
-DOMAIN_PROPERTIES = ['attached_volumes',
-                     'autostart',
-                     'backup_timestamp',
-                     # 'block_devices',
-                     'conf_file',
-                     # 'connected_vms',
-                     'default_dispvm',
-                     'default_user',
-                     # 'devices',
-                     'dir_path',
-                     'dir_path_prefix',
-                     'dns',
-                     'features',
-                     'firewall_conf',
-                     'hvm',
-                     'icon_path',
-                     'include_in_backups',
-                     'installed_by_rpm',
-                     'internal',
-                     'ip',
-                     'is_networked',
-                     'is_halted',
-                     'is_paused',
-                     'is_running',
-                     'is_qrexec_running',
-                     'is_outdated',
-                     'kernel',
-                     'kernelopts',
-                     'label',
-                     'mac',
-                     'maxmem',
-                     'memory',
-                     'name',
-                     'netmask',
-                     'netvm',
-                     'qid',
-                     'qrexec_timeout',
-                     # 'storage',
-                     # 'tags',
-                     'template',
-                     'updateable',
-                     'uuid',
-                     'vcpus',
-                     # 'volumes',
-                     'xid', ]
-
 DOMAIN_STATE_PROPERTIES = ['is_halted',
                            'is_paused',
                            'is_running',
@@ -93,7 +43,8 @@ def qubes_data(app):
     ''' Serialize `qubes.Qubes` to a dictionary '''
     # type: (Qubes) -> Dict[dbus.String, Any]
     result = {}
-    for name in QUBES_PROPERTIES:
+    for prop in app.property_list():
+        name = prop.__name__
         key = dbus.String(name)
         try:
             result[key] = serialize_val(getattr(app, name))
@@ -106,23 +57,18 @@ def qubes_data(app):
 def domain_data(vm):
     ''' Serializes a `qubes.vm.qubesvm.QubesVM` to a dictionary '''
     # type: (QubesVM) -> Dict[dbus.String, Any]
-    result = dbus.Dictionary({'state': 'halted'}, signature='ss')
-    for name in DOMAIN_PROPERTIES:
-        if name in DOMAIN_STATE_PROPERTIES:
-            if getattr(vm, name)() is True:
-                _, value = name.split("_", 1)
-                name = 'state'
-            else:
-                continue
-        else:
-            try:
-                value = serialize_val(getattr(vm, name))
-            except (AttributeError, libvirtError):
-                value = dbus.String('')
-            if name.startswith("is_"):
-                _, name = name.split("_", 1)
-
+    result = dbus.Dictionary({}, signature='sv')
+    for prop in vm.property_list():
+        name = prop.__name__
+        try:
+            value = serialize_val(getattr(vm, name))
+        except (AttributeError, libvirtError):
+            value = dbus.String('')
         result[name] = value
+
+    # Additional data
+    result['state'] = serialize_val(vm.get_power_state())
+    result['networked'] = serialize_val(vm.is_networked())
     return result
 
 
