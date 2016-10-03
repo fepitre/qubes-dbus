@@ -83,7 +83,7 @@ def label_data(lab):
             value = getattr(lab, name)
             result[name] = dbus.String(value)
         except AttributeError:
-            result[name] = ''
+            result[name] = dbus.String('')
     return result
 
 
@@ -109,7 +109,7 @@ def serialize_val(value):
 
 
 def label_path(label):
-    # type: (qubes.Label) -> dbus.ObjectPath
+    # type: (Label) -> dbus.ObjectPath
     ''' Return the D-Bus object path for a `qubes.Label` '''
     return dbus.ObjectPath('/org/qubes/Labels1/labels/' + label.name)
 

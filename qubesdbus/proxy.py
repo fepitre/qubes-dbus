@@ -67,7 +67,7 @@ class QubesDbusProxy(Extension):
     def __init__(self):
         super(QubesDbusProxy, self).__init__()
         self.domains = {}  # type: Dict[int, bool]
-        self.new_vm = []
+        self.new_vm = [] # type: List[QubesVM]
 
     @handler('*')
     def forward_vm_event(self, vm, event, *args, **kwargs):
