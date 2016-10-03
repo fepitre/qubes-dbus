@@ -17,10 +17,10 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 ''' D-Bus Domain object '''
 
 import dbus.service
+import qubes
 
 import qubesdbus.service
 
@@ -38,12 +38,14 @@ class Domain(qubesdbus.service.PropertiesObject):
     ''' `Domain` is managed by `DomainManager1` and represents a domain. Its D-Bus
         object path is `/org/qubes/DomainManager1/domains/QID`
     '''
+
     def __init__(self, bus, bus_name, bus_path, data):
         # type: (SessionBus, BusName , str, Dict[Union[str,dbus.String], Any]) -> None
         self.properties = data
         bus_path = '/'.join([bus_path, 'domains', str(data['qid'])])
-        name = data['name']
-        super(Domain, self).__init__(name, 'org.qubes.Domain1', data, bus=bus, bus_name=bus_name,
+        self.name = data['name']
+        super(Domain, self).__init__(self.name, 'org.qubes.Domain1', data,
+                                     bus=bus, bus_name=bus_name,
                                      bus_path=bus_path)
 
     @dbus.service.signal(
@@ -57,3 +59,20 @@ class Domain(qubesdbus.service.PropertiesObject):
         signature='s')
     def StartingSignal(self, name):
         self.properties['state'] = name
+
+    @dbus.service.method("org.qubes.Domain", out_signature="b")
+    def Shutdown(self):
+        app = qubes.Qubes()
+        name = str(self.name)
+        vm = app.domains[name]
+        vm.shutdown(wait=True)
+        self.properties['state'] = 'halted'
+        return True
+
+    @dbus.service.method("org.qubes.Domain", out_signature="b")
+    def Start(self):
+        app = qubes.Qubes()
+        name = str(self.name)
+        vm = app.domains[name]
+        vm.start()
+        return True

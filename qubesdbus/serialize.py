@@ -17,7 +17,6 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 ''' Collection of serialization helpers '''
 
 import dbus
@@ -110,20 +109,20 @@ def domain_data(vm):
     result = dbus.Dictionary({'state': 'halted'}, signature='ss')
     for name in DOMAIN_PROPERTIES:
         if name in DOMAIN_STATE_PROPERTIES:
-            key = 'state'
-        elif name.startswith("is_"):
-            _, key = name.split("_", 1)
+            if getattr(vm, name)() is True:
+                _, value = name.split("_", 1)
+                name = 'state'
+            else:
+                continue
         else:
-            key = name
+            try:
+                value = serialize_val(getattr(vm, name))
+            except (AttributeError, libvirtError):
+                value = dbus.String('')
+            if name.startswith("is_"):
+                _, name = name.split("_", 1)
 
-        key = dbus.String(key)
-        try:
-
-            value = serialize_val(getattr(vm, name))
-
-            result[key] = value
-        except (AttributeError, libvirtError):
-            result[key] = dbus.String('')
+        result[name] = value
     return result
 
 
