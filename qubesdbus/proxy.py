@@ -92,15 +92,12 @@ class QubesDbusProxy(Extension):
                 log.error('Could not add vm via to dbus DomainManager')
             log.info('Added VM %s', data)
             self.new_vm.remove(vm)
-	elif event == 'domain-start':
-	    proxy = vm_proxy(vm.qid)
-	    if kwargs['start_guid'] == True:
-		property_set(proxy, 'state', 'qrexec_running')
-	    else:
-		property_set(proxy, 'state', 'running')
-	elif event == 'domain-shutdown':
-	    proxy = vm_proxy(vm.qid)
-	    property_set(proxy, 'state', 'halted')
+        elif event == 'domain-start':
+            proxy = vm_proxy(vm.qid)
+            property_set(proxy, 'state', 'Running')
+        elif event == 'domain-shutdown':
+            proxy = vm_proxy(vm.qid)
+            property_set(proxy, 'state', 'Halted')
         else:
             log.warn('Unknown %s from %s %s %s', event, vm, args, kwargs)
 
