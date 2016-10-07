@@ -37,7 +37,7 @@ log.addHandler(JournalHandler(SYSLOG_IDENTIFIER='qubesdbus.labels'))
 log.setLevel(logging.INFO)
 
 
-class Labels(DbusServiceObject, ObjectManager):
+class Labels(ObjectManager):
     ''' A `org.freedesktop.DBus.ObjectManager` interface implementation, for
 	acquiring all the labels.
     '''
