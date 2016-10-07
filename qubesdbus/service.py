@@ -28,6 +28,7 @@ import logging
 import dbus
 import dbus.mainloop.glib
 import dbus.service
+
 from systemd.journal import JournalHandler
 
 from .constants import NAME_PREFIX, PATH_PREFIX, VERSION
@@ -41,26 +42,6 @@ try:
     from dbus.service import BusName
 except ImportError:
     pass
-
-
-class ObjectManager(object):
-    ''' Provides a class implementing the `org.freedesktop.DBus.ObjectManager`
-        interface.
-    '''
-
-    # pylint: disable=too-few-public-methods
-    def __init__(self, *args, **kwargs):
-        super(ObjectManager, self).__init__(*args, **kwargs)
-        self.managed_objects = []  # type: PropertiesObject
-
-    @dbus.service.method(dbus_interface="org.freedesktop.DBus.ObjectManager",
-                         out_signature="a{oa{sa{sv}}}")
-    def GetManagedObjects(self):
-        ''' Returns the domain objects paths and their supported interfaces and
-            properties.
-        '''  # pylint: disable=protected-access
-        return {o._object_path: o.properties_iface()
-                for o in self.managed_objects}
 
 
 class DbusServiceObject(dbus.service.Object):
@@ -90,6 +71,27 @@ class DbusServiceObject(dbus.service.Object):
         dbus.service.Object.__init__(self, self.bus_name, self.bus_path)
 
 
+class ObjectManager(DbusServiceObject):
+    ''' Provides a class implementing the `org.freedesktop.DBus.ObjectManager`
+        interface.
+    '''
+
+    # pylint: disable=too-few-public-methods
+    def __init__(self, bus=None, bus_name=None, bus_path=None):
+        super(ObjectManager, self).__init__(bus=bus, bus_name=bus_name,
+                                            bus_path=bus_path)
+        self.managed_objects = []  # type: PropertiesObject
+
+    @dbus.service.method(dbus_interface="org.freedesktop.DBus.ObjectManager",
+                         out_signature="a{oa{sa{sv}}}")
+    def GetManagedObjects(self):
+        ''' Returns the domain objects paths and their supported interfaces and
+            properties.
+        '''  # pylint: disable=protected-access
+        return {o._object_path: o.properties_iface()
+                for o in self.managed_objects}
+
+
 class PropertiesObject(DbusServiceObject):
     # pylint: disable=invalid-name
     ''' Implements `org.freedesktop.DBus.Properties` interface. '''
@@ -106,8 +108,9 @@ class PropertiesObject(DbusServiceObject):
         super(PropertiesObject, self).__init__(*args, **kwargs)
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
-    def Get(self, _, property_name):
-        ''' Returns the property value '''
+    def Get(self, interface, property_name):
+        ''' Returns the property value.
+        ''' # pylint: disable=unused-argument
         return self.properties[property_name]
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties",
@@ -117,8 +120,9 @@ class PropertiesObject(DbusServiceObject):
         return self.properties
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
-    def Set(self, _, name, value):  # type: (str, dbus.String, Any) -> None
-        ''' Set a property value '''
+    def Set(self, interface, name, value):  # type: (str, dbus.String, Any) -> None
+        ''' Set a property value.
+        ''' # pylint: disable=unused-argument
         new_value = value
         old_value = self.properties[name]
         if new_value == old_value:
@@ -131,8 +135,10 @@ class PropertiesObject(DbusServiceObject):
 
     @dbus.service.signal(dbus_interface='org.freedesktop.DBus.Properties',
                          signature="sa{sv}as")
-    def PropertiesChanged(self, _, changed_properties, __=None):
-        ''' This signal is emitted when a property changes '''
+    def PropertiesChanged(self, interface, changed_properties,
+                          invalidated=None):
+        ''' This signal is emitted when a property changes.
+        ''' # pylint: disable=unused-argument
         # type: (str, Dict[dbus.String, Any], List[dbus.String]) -> None
         for name, value in changed_properties.items():
             self.log.debug('%s: Property %s changed %s', self.id, name, value)
