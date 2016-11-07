@@ -19,6 +19,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ''' Collection of serialization helpers '''
 
+import re
+
 import dbus
 import qubes
 import qubes.vm.qubesvm
@@ -72,6 +74,14 @@ def domain_data(vm):
     return result
 
 
+def devices_data(app):
+    result = []
+    for vm in app.domains:
+        for dev_class, dev_collection in vm.devices.items():
+            result += serialize_val(dev_collection)
+    return result
+
+
 def label_data(lab):
     ''' Serialize a `qubes.Label` to a dictionary '''
     # type: (Label) -> Dict[dbus.String, Any]
@@ -99,13 +109,28 @@ def serialize_val(value):
     elif isinstance(value, int):
         return dbus.Int32(value)
     elif callable(value):
-        return serialize_val(value())
+        return serialize_val(value)
     elif isinstance(value, qubes.Label):
         return label_path(value)
     elif isinstance(value, qubes.vm.qubesvm.QubesVM):
         return domain_path(value)
+    elif isinstance(value, qubes.devices.DeviceCollection):
+        return dbus.Array(device_collection_data(value), signature='a{sv}')
+    elif isinstance(value, qubes.devices.DeviceInfo):
+        return dbus.Dictionary(device_collection_data(value), signature='sv')
+    elif isinstance(value, re._pattern_type):
+        return dbus.String(value.pattern)
     else:
         return dbus.String(value)
+
+
+def device_collection_data(collection):
+    return [device_data(dev) for dev in collection.available()]
+
+
+def device_data(dev):
+    return {serialize_val(prop): serialize_val(getattr(dev, prop))
+            for prop in dir(dev) if not prop.startswith('_')}
 
 
 def label_path(label):
