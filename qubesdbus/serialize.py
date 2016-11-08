@@ -109,7 +109,7 @@ def serialize_val(value):
     elif isinstance(value, int):
         return dbus.Int32(value)
     elif callable(value):
-        return serialize_val(value)
+        return serialize_val(value())
     elif isinstance(value, qubes.Label):
         return label_path(value)
     elif isinstance(value, qubes.vm.qubesvm.QubesVM):
@@ -117,7 +117,7 @@ def serialize_val(value):
     elif isinstance(value, qubes.devices.DeviceCollection):
         return dbus.Array(device_collection_data(value), signature='a{sv}')
     elif isinstance(value, qubes.devices.DeviceInfo):
-        return dbus.Dictionary(device_collection_data(value), signature='sv')
+        return dbus.Dictionary(device_data(value), signature='sv')
     elif isinstance(value, re._pattern_type):
         return dbus.String(value.pattern)
     else:
