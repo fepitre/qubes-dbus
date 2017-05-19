@@ -31,7 +31,8 @@ Vendor:		Invisible Things Lab
 License:    GPL2+
 URL:		http://www.qubes-os.org
 
-Requires: python-dbus
+Requires: python3-dbus
+Requires: python3-systemd
 
 %define _builddir %(pwd)
 
@@ -44,11 +45,11 @@ ln -sf . %{name}-%{version}
 foo bar
 
 %build
-/usr/bin/python setup.py build
+/usr/bin/python3 setup.py build
 
 %install
 
-python setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
+python3 setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
 mkdir -p $RPM_BUILD_ROOT/usr/share
 cp -r dbus-1 $RPM_BUILD_ROOT/usr/share/dbus-1
 
