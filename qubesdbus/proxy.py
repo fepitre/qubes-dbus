@@ -20,12 +20,13 @@
 
 from __future__ import absolute_import
 
+import asyncio
 import logging
 
 import dbus
-from qubes import Qubes
-from qubes.ext import Extension, handler
-from qubes.vm.qubesvm import QubesVM
+from qubesadmin import Qubes
+from qubesadmin.events import EventsDispatcher
+from qubesadmin.vm import QubesVM
 from systemd.journal import JournalHandler
 
 import qubesdbus.serialize
@@ -62,15 +63,24 @@ def is_garbage(event):
         return False
 
 
-class QubesDbusProxy(Extension):
+class QubesDbusProxy(object):
     # pylint: disable=too-few-public-methods,no-self-use
     def __init__(self):
         super(QubesDbusProxy, self).__init__()
         self.domains = {}  # type: Dict[int, bool]
-        self.new_vm = [] # type: List[QubesVM]
+        self.new_vm = []  # type: List[QubesVM]
+        self.app = Qubes()
+        self._events_dispatcher = EventsDispatcher(self.app)
+        self._events_dispatcher.add_handler('*', self.forward_vm_event)
+        self._events_dispatcher.add_handler('*', self.forward_app_event)
 
-    @handler('*')
+    @asyncio.coroutine
+    def run(self):
+        yield from self._events_dispatcher.listen_for_events()
+
     def forward_vm_event(self, vm, event, *args, **kwargs):
+        if vm is None:
+            return
         if is_garbage(event):
             log.debug('Drop %s from %s', event, vm)
             return
@@ -101,8 +111,9 @@ class QubesDbusProxy(Extension):
         else:
             log.warn('Unknown %s from %s %s %s', event, vm, args, kwargs)
 
-    @handler('*', system=True)
     def forward_app_event(self, vm, event, *args, **kwargs):
+        if vm is not None:
+            return
         proxy = app_proxy()
         if is_garbage(event):
             log.debug('Drop %s from %s', event, vm)
@@ -163,3 +174,15 @@ def get_proxy(obj):
     else:
         log.error("Unknown sender object %s", obj)
         return
+
+
+def main():
+    proxy = QubesDbusProxy()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(proxy.run())
+    loop.stop()
+    loop.run_forever()
+    loop.close()
+
+if __name__ == '__main__':
+    main()

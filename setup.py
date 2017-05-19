@@ -14,7 +14,7 @@ if __name__ == '__main__':
         url='https://www.qubes-os.org/',
         packages=['qubesdbus'],
         entry_points={
-            'qubes.ext': [
-                'qubesdbus = qubesdbus:QubesDbusProxy'
+            'console_scripts': [
+                'qubes-dbus-proxy = qubesdbus.proxy:main'
             ]
         })

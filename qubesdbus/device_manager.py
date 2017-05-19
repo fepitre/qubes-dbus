@@ -22,7 +22,7 @@ import logging
 import pprint
 import sys
 
-import qubes
+import qubesadmin
 import systemd.journal
 from gi.repository import GLib
 
@@ -60,7 +60,7 @@ class Device(qubesdbus.service.PropertiesObject):
 def main(args=None):  # pylint: disable=unused-argument
     ''' Main function starting the DomainManager1 service. '''
     loop = GLib.MainLoop()
-    app = qubes.Qubes()
+    app = qubesadmin.Qubes()
     app.domains[0].devices[
         'pci'].available()  # HACK this populates dom0 devices
     devices = qubesdbus.serialize.devices_data(app)

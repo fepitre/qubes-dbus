@@ -24,7 +24,7 @@ from __future__ import absolute_import, print_function
 import logging
 import sys
 
-import qubes
+import qubesadmin
 from gi.repository import GLib
 from systemd.journal import JournalHandler
 
@@ -65,10 +65,10 @@ class Label(PropertiesObject):
 def main(args=None):
     ''' Main function '''  # pylint: disable=unused-argument
     loop = GLib.MainLoop()
-    app = qubes.Qubes()
+    app = qubesadmin.Qubes()
 
     labels_data = [qubesdbus.serialize.label_data(label)
-                   for label in app.labels.values()]
+                   for label in app.labels]
     _ = Labels(labels_data)
     print("Service running...")
     loop.run()

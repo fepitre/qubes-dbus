@@ -1,7 +1,7 @@
 from typing import (List)
-import qubes.vm
+import qubesadmin.vm
 class Qubes(object):
-    domains = ... # type: List[qubes.vm.BaseVM]
+    domains = ... # type: List[qubesadmin.vm.QubesVM]
     labels = ... # type: Dict[str,qubes.Label]
 
 class Label(object):
