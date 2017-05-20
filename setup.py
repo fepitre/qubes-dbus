@@ -1,5 +1,3 @@
-#!/usr/bin/env python2
-# -*- encoding: utf8 -*-
 # pylint: disable=missing-docstring
 import setuptools
 

@@ -1,4 +1,4 @@
-# -*- encoding: utf8 -*-
+# -*- encoding: utf-8 -*-
 # pylint: disable=invalid-name
 #
 # The Qubes OS Project, https://www.qubes-os.org/
@@ -18,8 +18,6 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ''' org.qubes.Labels1 service '''
-
-from __future__ import absolute_import, print_function
 
 import logging
 import sys
