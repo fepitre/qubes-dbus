@@ -22,16 +22,16 @@
 import re
 
 import dbus
-import qubes
-import qubes.vm.qubesvm
-
-from libvirt import libvirtError  # pylint: disable=import-error
+import qubesadmin
+import qubesadmin.devices as devices
+import qubesadmin.vm
 
 try:
     # Check mypy dependencies. pylint: disable=ungrouped-imports,unused-import
     from typing import Any, Callable, Tuple, List, Dict
-    from qubes.vm.qubesvm import QubesVM
-    from qubes import Qubes, Label
+    from qubesadmin.vm import QubesVM
+    from qubesadmin import Qubes
+    from qubesadmin.label import Label
 except ImportError:
     pass
 
@@ -46,7 +46,7 @@ def qubes_data(app):
     # type: (Qubes) -> Dict[dbus.String, Any]
     result = {}
     for prop in app.property_list():
-        name = prop.__name__
+        name = str(prop)
         key = dbus.String(name)
         try:
             result[key] = serialize_val(getattr(app, name))
@@ -61,10 +61,10 @@ def domain_data(vm):
     # type: (QubesVM) -> Dict[dbus.String, Any]
     result = dbus.Dictionary({}, signature='sv')
     for prop in vm.property_list():
-        name = prop.__name__
+        name = str(prop)
         try:
             value = serialize_val(getattr(vm, name))
-        except (AttributeError, libvirtError):
+        except AttributeError:
             value = dbus.String('')
         result[name] = value
 
@@ -110,13 +110,13 @@ def serialize_val(value):
         return dbus.Int32(value)
     elif callable(value):
         return serialize_val(value())
-    elif isinstance(value, qubes.Label):
+    elif isinstance(value, qubesadmin.label.Label):
         return label_path(value)
-    elif isinstance(value, qubes.vm.qubesvm.QubesVM):
+    elif isinstance(value, qubesadmin.vm.QubesVM):
         return domain_path(value)
-    elif isinstance(value, qubes.devices.DeviceCollection):
+    elif isinstance(value, devices.DeviceCollection):
         return dbus.Array(device_collection_data(value), signature='a{sv}')
-    elif isinstance(value, qubes.devices.DeviceInfo):
+    elif isinstance(value, devices.DeviceInfo):
         return dbus.Dictionary(device_data(value), signature='sv')
     elif isinstance(value, re._pattern_type):
         return dbus.String(value.pattern)

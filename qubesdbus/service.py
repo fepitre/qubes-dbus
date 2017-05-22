@@ -67,8 +67,7 @@ class DbusServiceObject(dbus.service.Object):
             _name = ''.join([NAME_PREFIX, '.', self.__class__.__name__,
                              str(VERSION)])
             self.bus_name = dbus.service.BusName(_name, self.bus)
-    # avoid pylint super-on-old-class error
-        dbus.service.Object.__init__(self, self.bus_name, self.bus_path)
+        super(DbusServiceObject, self).__init__(self.bus_name, self.bus_path)
 
 
 class ObjectManager(DbusServiceObject):

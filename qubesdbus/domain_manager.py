@@ -25,7 +25,7 @@ import logging
 import sys
 
 import dbus.service
-import qubes
+import qubesadmin
 from gi.repository import GLib
 from systemd.journal import JournalHandler
 
@@ -119,7 +119,7 @@ class DomainManager(PropertiesObject, ObjectManager):
 def main(args=None):  # pylint: disable=unused-argument
     ''' Main function starting the DomainManager1 service. '''
     loop = GLib.MainLoop()
-    app = qubes.Qubes()
+    app = qubesadmin.Qubes()
     data = qubesdbus.serialize.qubes_data(app)
     domains = [qubesdbus.serialize.domain_data(vm) for vm in app.domains]
     _ = DomainManager(data, domains)

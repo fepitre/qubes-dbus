@@ -20,7 +20,7 @@
 ''' D-Bus Domain object '''
 
 import dbus.service
-import qubes
+import qubesadmin
 
 import qubesdbus.service
 
@@ -62,7 +62,7 @@ class Domain(qubesdbus.service.PropertiesObject):
 
     @dbus.service.method("org.qubes.Domain", out_signature="b")
     def Shutdown(self):
-        app = qubes.Qubes()
+        app = qubesadmin.Qubes()
         name = str(self.name)
         vm = app.domains[name]
         vm.shutdown(wait=True)
@@ -71,7 +71,7 @@ class Domain(qubesdbus.service.PropertiesObject):
 
     @dbus.service.method("org.qubes.Domain", out_signature="b")
     def Start(self):
-        app = qubes.Qubes()
+        app = qubesadmin.Qubes()
         name = str(self.name)
         vm = app.domains[name]
         vm.start()
