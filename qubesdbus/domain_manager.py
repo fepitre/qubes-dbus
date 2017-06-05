@@ -61,6 +61,23 @@ class DomainManager(PropertiesObject, ObjectManager):
                                             'org.qubes.DomainManager1', data)
         self.managed_objects = [self._proxify_domain(vm) for vm in domains]
 
+        for domain in self.managed_objects:
+            self._setup_signals(domain)
+
+    def _setup_signals(self, obj):
+        obj_path = obj._object_path # pylint: disable=protected-access
+
+        self.bus.add_signal_receiver(
+            lambda: self.Started("org.qubes.Domain", obj_path),
+            signal_name="Started", path=obj_path,
+            dbus_interface="org.qubes.Domain")
+
+        self.bus.add_signal_receiver(
+            lambda: self.Halted("org.qubes.Domain", obj_path),
+            signal_name="Halted", path=obj_path,
+            dbus_interface="org.qubes.Domain")
+
+
     @dbus.service.method(dbus_interface='org.qubes.DomainManager1',
                          in_signature='a{sv}b')
     def AddDomain(self, vm, execute=False):
@@ -85,6 +102,16 @@ class DomainManager(PropertiesObject, ObjectManager):
     def DomainAdded(self, _, object_path):
         ''' This signal is emitted when a new domain is added '''
         self.log.debug("Emiting DomainAdded signal: %s", object_path)
+
+    @dbus.service.signal("org.qubes.DomainManager1", signature="so")
+    def Halted(self, _, object_path):
+        print("Halted %s" % object_path)
+        pass
+
+    @dbus.service.signal("org.qubes.DomainManager1", signature="so")
+    def Started(self, _, object_path):
+        print("Started %s" % object_path)
+        pass
 
     @dbus.service.signal("org.qubes.DomainManager1", signature="so")
     def DomainRemoved(self, _, object_path):
