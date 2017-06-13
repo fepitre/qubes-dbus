@@ -18,6 +18,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+''' Forwards qubes-core-admin events to D-Bus. '''
+
 from __future__ import absolute_import
 
 import asyncio
@@ -59,8 +61,6 @@ def is_garbage(event):
         return True
     elif event.startswith('property-pre-set'):
         return True
-    else:
-        return False
 
 
 class QubesDbusProxy(object):
@@ -104,13 +104,19 @@ class QubesDbusProxy(object):
             self.new_vm.remove(vm)
         elif event in ('domain-spawn', 'domain-pre-shutdown'):
             proxy = vm_proxy(vm.qid)
-            property_set(proxy, 'state', 'Transient')
+            property_set(proxy, 'state', 'Starting')
         elif event == 'domain-start':
             proxy = vm_proxy(vm.qid)
-            property_set(proxy, 'state', 'Running')
+            property_set(proxy, 'state', 'Started')
+        elif event == 'domain-pre-shutdown':
+            proxy = vm_proxy(vm.qid)
+            property_set(proxy, 'state', 'Halting')
         elif event == 'domain-shutdown':
             proxy = vm_proxy(vm.qid)
-            property_set(proxy, 'state', 'Halted')
+            if property_get(proxy, 'state') == 'Starting':
+                property_set(proxy, 'state', 'Failed')
+            else:
+                property_set(proxy, 'state', 'Halted')
         else:
             log.warn('Unknown %s from %s %s %s', event, vm, args, kwargs)
 
@@ -137,6 +143,12 @@ class QubesDbusProxy(object):
         else:
             log.warn('Unknown %s from %s %s %s', event, vm, args, kwargs)
 
+
+def property_get(proxy, name):
+    # type: (dbus.proxies.ProxyObject, str, Any) -> None
+    ''' Helper for setting a property on a helper '''
+    func = proxy.get_dbus_method('Get', 'org.freedesktop.DBus.Properties')
+    func('', name)
 
 def property_set(proxy, name, value):
     # type: (dbus.proxies.ProxyObject, str, Any) -> None
