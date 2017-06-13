@@ -48,37 +48,6 @@ class Domain(qubesdbus.service.PropertiesObject):
                                      bus=bus, bus_name=bus_name,
                                      bus_path=bus_path)
 
-    @dbus.service.signal(dbus_interface="org.qubes.Domain")
-    def Started(self):
-        """ Signal emited when the domain is started """
-        pass
-
-    @dbus.service.signal(dbus_interface="org.qubes.Domain")
-    def Halted(self):
-        """ Signal emited when the domain is halted """
-        pass
-
-    @dbus.service.signal(dbus_interface='org.freedesktop.DBus.Properties',
-                         signature="sa{sv}as")
-    def PropertiesChanged(self, interface, changed_properties,
-                          invalidated=None):
-        ''' This signal is emitted when a property changes.
-        '''  # pylint: disable=unused-argument
-        # type: (str, Dict[dbus.String, Any], List[dbus.String]) -> None
-        if 'state' in changed_properties:
-            value = changed_properties['state']
-            if value == 'Running':
-                self.Started()
-            elif value == 'Halted':
-                self.Halted()
-        super().PropertiesChanged(interface, changed_properties, invalidated)
-
-    @dbus.service.signal(
-        dbus_interface="org.qubes.DomainManager1.domains.Signals",
-        signature='s')
-    def StartingSignal(self, name):
-        self.properties['state'] = name
-
     @dbus.service.method("org.qubes.Domain", out_signature="b")
     def Shutdown(self):
         app = qubesadmin.Qubes()
