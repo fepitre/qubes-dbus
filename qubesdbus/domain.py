@@ -1,4 +1,4 @@
-# -*- encoding: utf8 -*-
+# -*- encoding: utf-8 -*-
 # pylint: disable=invalid-name
 #
 # The Qubes OS Project, https://www.qubes-os.org/

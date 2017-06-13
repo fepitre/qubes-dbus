@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 #
 # The Qubes OS Project, https://www.qubes-os.org/
 #
@@ -101,6 +102,9 @@ class QubesDbusProxy(object):
                 log.error('Could not add vm via to dbus DomainManager')
             log.info('Added VM %s', data)
             self.new_vm.remove(vm)
+        elif event in ('domain-spawn', 'domain-pre-shutdown'):
+            proxy = vm_proxy(vm.qid)
+            property_set(proxy, 'state', 'Transient')
         elif event == 'domain-start':
             proxy = vm_proxy(vm.qid)
             property_set(proxy, 'state', 'Running')
