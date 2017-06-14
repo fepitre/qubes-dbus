@@ -165,7 +165,10 @@ class DomainManager(PropertiesObject, ObjectManager):
             return False
         for vm in self.managed_objects:
             # pylint: disable=protected-access
-            if vm._object_path == vm_dbus_path:
+            obj_path = vm._object_path  # type: dbus.ObjectPath
+            if obj_path == vm_dbus_path:
+                for signal_matcher in self.signal_matches[obj_path]:
+                    self.bus.remove_signal_receiver(signal_matcher)
                 vm.remove_from_connection()
                 self.managed_objects.remove(vm)
                 self.DomainRemoved(INTERFACE, vm._object_path)
