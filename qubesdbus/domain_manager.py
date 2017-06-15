@@ -73,7 +73,7 @@ class DomainManager(PropertiesObject, ObjectManager):
             self._setup_signals(obj_path)
 
     def _setup_signals(self, obj_path: dbus.ObjectPath):
-        def emit_state_signal(dbus_interface: DBusString,
+        def emit_state_signal(dbus_interface,
                               changed_properties: DBusProperties,
                               invalidated: dbus.Array=None  # pylint: disable=unused-argument
                              ) -> None:
@@ -93,36 +93,42 @@ class DomainManager(PropertiesObject, ObjectManager):
         if obj_path not in self.signal_matches:
             self.signal_matches[obj_path] = list()
 
-        self.signal_matches[obj_path] += signal_match
+        self.signal_matches[obj_path] += [signal_match]
 
     @dbus.service.signal(INTERFACE, signature="so")
-    def Started(self, interface: DBusString, object_path: dbus.ObjectPath) -> None:
+    def Started(self, interface, obj_path):
+        # type: (DBusString, dbus.ObjectPath) -> None
         """ Signal emited when the domain is started and running"""
         pass
 
     @dbus.service.signal(INTERFACE, signature="so")
-    def Starting(self, interface: DBusString, object_path: dbus.ObjectPath) -> None:
+    def Starting(self, interface, obj_path):
+        # type: (DBusString, dbus.ObjectPath) -> None
         """ Signal emited when the domain is starting """
         pass
 
     @dbus.service.signal(INTERFACE, signature="so")
-    def Failed(self, interface: DBusString, object_path: dbus.ObjectPath) -> None:
+    def Failed(self, interface, obj_path):
+        # type: (DBusString, dbus.ObjectPath) -> None
         """ Signal emited when during the start up of the domain something went
         wrong and the domain was halted"""
         pass
 
     @dbus.service.signal(INTERFACE, signature="so")
-    def Halting(self, interface: DBusString, object_path: dbus.ObjectPath) -> None:
+    def Halting(self, interface, obj_path):
+        # type: (DBusString, dbus.ObjectPath) -> None
         """ Signal emited when the domain is shutting down"""
         pass
 
     @dbus.service.signal(INTERFACE, signature="so")
-    def Halted(self, interface: DBusString, object_path: dbus.ObjectPath) -> None:
+    def Halted(self, interface, obj_path):
+        # type: (DBusString, dbus.ObjectPath) -> None
         """ Signal emited when the domain is halted"""
         pass
 
     @dbus.service.method(dbus_interface=INTERFACE, in_signature='a{sv}b')
-    def AddDomain(self, vm: DBusProperties, execute: bool = False) -> bool:
+    def AddDomain(self, vm, execute = False):
+        # type: (DBusProperties, bool) -> bool
         ''' Notify the `DomainManager` when a domain is added. This is
             called by `QubesDbusProxy` when 'domain-create-on-disk' event
             arrives from `core-admin`. UI programs which need to create an
@@ -155,11 +161,12 @@ class DomainManager(PropertiesObject, ObjectManager):
     @dbus.service.method(dbus_interface=INTERFACE,
                          in_signature='ob', out_signature='b')
     def RemoveDomain(self, vm_dbus_path, execute=False):
+         # type: (dbus.ObjectPath, bool) -> bool
         ''' Notify the `DomainManager` when a domain is removed. This is
             called by `QubesDbusProxy` when 'domain-deleted' event
             arrives from `core-admin`. UI programs which need to remove an
             actual vm should set `execute` to True.
-        ''' # type: (dbus.ObjectPath, bool) -> bool
+        '''
         if execute:
             log.error('Creating domains via DBus is not implemented yet')
             return False
