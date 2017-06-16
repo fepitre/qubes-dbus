@@ -19,19 +19,19 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ''' D-Bus Domain object '''
 
-import dbus.service
-import qubesadmin
+from typing import Dict, Union
 
+import dbus
+import dbus.service
+from dbus._dbus import SessionBus
+from dbus.service import BusName
+
+import qubesadmin
 import qubesdbus.service
 
-try:
-    # Check mypy types. pylint: disable=ungrouped-imports, unused-import
-    from typing import Any, Union
-    import dbus
-    from dbus._dbus import SessionBus
-    from dbus.service import BusName
-except ImportError:
-    pass
+DBusString = Union[str, dbus.String]
+
+INTERFACE = 'org.qubes.Domain'
 
 
 class Domain(qubesdbus.service.PropertiesObject):
@@ -39,14 +39,13 @@ class Domain(qubesdbus.service.PropertiesObject):
         object path is `/org/qubes/DomainManager1/domains/QID`
     '''
 
-    def __init__(self, bus, bus_name, bus_path, data):
-        # type: (SessionBus, BusName , str, Dict[Union[str,dbus.String], Any]) -> None
+    def __init__(self, bus: SessionBus, bus_name: BusName, bus_path: str,
+                 data: Dict[Union[str, dbus.String]]) -> None:
         self.properties = data
         bus_path = '/'.join([bus_path, 'domains', str(data['qid'])])
         self.name = data['name']
-        super(Domain, self).__init__(self.name, 'org.qubes.Domain1', data,
-                                     bus=bus, bus_name=bus_name,
-                                     bus_path=bus_path)
+        super(Domain, self).__init__(self.name, INTERFACE, data, bus=bus,
+                                     bus_name=bus_name, bus_path=bus_path)
 
     @dbus.service.method("org.qubes.Domain", out_signature="b")
     def Shutdown(self):
