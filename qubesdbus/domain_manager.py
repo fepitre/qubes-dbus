@@ -61,10 +61,11 @@ class DomainManager(PropertiesObject, ObjectManager):
         self.managed_objects = [self._proxify_domain(vm) for vm in domains]
         self.state_signals = {
             'Starting': self.Starting,
-            'Running' : self.Started,
+            'Started' : self.Started,
             'Failed'  : self.Failed,
             'Halting' : self.Halting,
             'Halted'  : self.Halted,
+            'Unknown' : lambda _, __: None,
         }
         self.signal_matches = {} # type: Dict[dbus.ObjectPath, List[DBusSignalMatch]]
 

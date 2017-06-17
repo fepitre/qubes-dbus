@@ -55,6 +55,21 @@ def qubes_data(app):
     return result
 
 
+def serialize_state(state):
+    state = state.lower()
+    if state == 'crashed':
+        return 'Failed'
+    elif state in ['transient', 'na']:
+        return 'Unknown'
+    elif state == 'halted':
+        return 'Halted'
+    elif state == 'transient':
+        return 'Starting'
+    elif state == 'running':
+        return 'Started'
+    else:
+        return '=>%s<=' % state
+
 def domain_data(vm):
     ''' Serializes a `qubes.vm.qubesvm.QubesVM` to a dictionary '''
     # type: (QubesVM) -> Dict[dbus.String, Any]
@@ -68,7 +83,7 @@ def domain_data(vm):
         result[name] = value
 
     # Additional data
-    result['state'] = serialize_val(vm.get_power_state())
+    result['state'] = serialize_state(vm.get_power_state())
     result['networked'] = serialize_val(vm.is_networked())
     return result
 
