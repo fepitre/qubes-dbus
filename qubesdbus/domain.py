@@ -19,7 +19,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ''' D-Bus Domain object '''
 
-from typing import Dict, Union
+from typing import Any, Dict, Union
 
 import dbus
 import dbus.service
@@ -40,7 +40,7 @@ class Domain(qubesdbus.service.PropertiesObject):
     '''
 
     def __init__(self, bus: SessionBus, bus_name: BusName, bus_path: str,
-                 data: Dict[Union[str, dbus.String]]) -> None:
+                 data: Dict[Union[str, dbus.String], Any]) -> None:
         self.properties = data
         bus_path = '/'.join([bus_path, 'domains', str(data['qid'])])
         self.name = data['name']
