@@ -22,6 +22,7 @@
 from typing import Any, Dict, Union
 
 import dbus
+from dbus.exceptions import ValidationException
 import dbus.service
 from dbus._dbus import SessionBus
 from dbus.service import BusName
@@ -47,6 +48,18 @@ class Domain(qubesdbus.service.PropertiesObject):
         super(Domain, self).__init__(self.name, INTERFACE, data, bus=bus,
                                      bus_name=bus_name, bus_path=bus_path)
 
+    @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
+    def Set(self, interface, name,
+            value):  # type: (str, dbus.String, Any) -> None
+        ''' Set a property value. '''
+        if name == 'state':
+            cur_state = self.properties[name]
+            state = value
+            if not valid_state_change(cur_state, state):
+                msg = "State can't change from %s to %s" % (cur_state, state)
+                raise ValidationException(msg)
+        super().Set(interface, name, value)
+
     @dbus.service.method("org.qubes.Domain", out_signature="b")
     def Shutdown(self):
         app = qubesadmin.Qubes()
@@ -63,3 +76,36 @@ class Domain(qubesdbus.service.PropertiesObject):
         vm = app.domains[name]
         vm.start()
         return True
+
+
+def valid_state_change(cur_state: DBusString, state: DBusString) -> bool:
+    ''' Validates the state changes of a domain. This state don't map one to
+        one to the states provided by qubesadmin. The purpose of this states is
+        to be user consumable.
+        Valid state changes are:
+        * UNKNOWN → [STARTED|HALTING]  — workaround Transient state bug
+        * FAILED  → STARTING
+        * HALTED  → STARTING
+        * STARTING → [FAILED|STARTED]
+        * STARTED → [FAILED|HALTING]
+        * HALTING → [FAILED|HALTED]
+    '''  # pylint: disable=too-many-boolean-expressions
+    all_states = [
+        'Unknown', 'Failed', 'Halted', 'Starting', 'Started', 'Halting'
+    ]
+
+    if cur_state == state:  # theoretically DBus should take care of this
+        return False
+    elif cur_state is None and state in all_states\
+      or state == 'Unknown' \
+      or (cur_state == 'Unknown' and state in ['Started', 'Halting']) \
+      or (cur_state == 'Failed'   and state == 'Starting')\
+      or (cur_state == 'Halted'   and state == 'Starting')\
+      or (cur_state == 'Starting' and state == 'Started')\
+      or (cur_state == 'Started'  and state == 'Halting')\
+      or (cur_state == 'Halting'  and state == 'Halted'):
+        return True
+    elif state == 'Failed':
+        return True
+
+    return False
