@@ -69,6 +69,14 @@ class Domain(qubesdbus.service.PropertiesObject):
         return True
 
     @dbus.service.method("org.qubes.Domain", out_signature="b")
+    def Kill(self):
+        app = qubesadmin.Qubes()
+        name = str(self.name)
+        vm = app.domains[name]
+        vm.kill()
+        return True
+
+    @dbus.service.method("org.qubes.Domain", out_signature="b")
     def Start(self):
         app = qubesadmin.Qubes()
         name = str(self.name)
@@ -85,7 +93,7 @@ def valid_state_change(cur_state: DBusString, state: DBusString) -> bool:
         * UNKNOWN → [STARTED|HALTING]  — workaround Transient state bug
         * FAILED  → STARTING
         * HALTED  → STARTING
-        * STARTING → [FAILED|STARTED]
+        * STARTING → [FAILED|STARTED|HALTED]
         * STARTED → [FAILED|HALTING]
         * HALTING → [FAILED|HALTED]
     '''  # pylint: disable=too-many-boolean-expressions
@@ -101,6 +109,7 @@ def valid_state_change(cur_state: DBusString, state: DBusString) -> bool:
       or (cur_state == 'Failed'   and state == 'Starting')\
       or (cur_state == 'Halted'   and state == 'Starting')\
       or (cur_state == 'Starting' and state == 'Started')\
+      or (cur_state == 'Starting' and state == 'Halted')\
       or (cur_state == 'Started'  and state == 'Halting')\
       or (cur_state == 'Halting'  and state == 'Halted'):
         return True
