@@ -49,9 +49,9 @@ class Device(qubesdbus.service.PropertiesObject):
     def __init__(self, bus, bus_name, bus_path, data):
         self.properties = data
         pp.pprint(data)
-        self.name = data['ident']
+        self.name = data['description']
         bus_path = '/'.join(
-            [bus_path, 'devices',  str(data['ident'])])
+            [bus_path, 'devices',  str(data['ident']).replace(".", "/")])
         super(Device, self).__init__(self.name, 'org.qubes.Device1', data,
                                      bus=bus, bus_name=bus_name,
                                      bus_path=bus_path)
@@ -61,7 +61,7 @@ def main(args=None):  # pylint: disable=unused-argument
     ''' Main function starting the DomainManager1 service. '''
     loop = GLib.MainLoop()
     app = qubesadmin.Qubes()
-    app.domains[0].devices[
+    app.domains['dom0'].devices[
         'pci'].available()  # HACK this populates dom0 devices
     devices = qubesdbus.serialize.devices_data(app)
     _ = DeviceManager(devices)
