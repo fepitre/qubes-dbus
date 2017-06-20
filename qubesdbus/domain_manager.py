@@ -89,7 +89,8 @@ class DomainManager(PropertiesObject, ObjectManager):
         signal_match = self.bus.add_signal_receiver(
             emit_state_signal,
             signal_name="PropertiesChanged",
-            dbus_interface='org.freedesktop.DBus.Properties') # type: DBusSignalMatch
+            dbus_interface='org.freedesktop.DBus.Properties',
+            path=obj_path)  # type: DBusSignalMatch
 
         if obj_path not in self.signal_matches:
             self.signal_matches[obj_path] = list()
