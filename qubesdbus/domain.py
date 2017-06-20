@@ -65,8 +65,7 @@ class Domain(qubesdbus.service.PropertiesObject):
         app = qubesadmin.Qubes()
         name = str(self.name)
         vm = app.domains[name]
-        vm.shutdown(wait=True)
-        self.properties['state'] = 'halted'
+        vm.shutdown()
         return True
 
     @dbus.service.method("org.qubes.Domain", out_signature="b")
