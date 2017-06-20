@@ -63,4 +63,5 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/qubes-dbus-proxy
 /usr/share/dbus-1/services/org.qubes.DomainManager1.service
 /usr/share/dbus-1/services/org.qubes.Labels1.service
+/usr/share/dbus-1/services/org.qubes.DeviceManager1.service
 /etc/xdg/autostart/qubes-dbus-proxy.desktop
