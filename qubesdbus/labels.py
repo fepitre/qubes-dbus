@@ -22,13 +22,15 @@
 import logging
 import sys
 
-import qubesadmin
-from gi.repository import GLib
 from systemd.journal import JournalHandler
 
+import qubesadmin
 import qubesdbus.serialize
-from qubesdbus.service import (DbusServiceObject, ObjectManager,
-                               PropertiesObject)
+from qubesdbus.service import ObjectManager, PropertiesObject
+
+import gi  # isort:skip
+gi.require_version('Gtk', '3.0')  # isort:skip
+from gi.repository import GLib  # isort:skip pylint:disable=wrong-import-position
 
 log = logging.getLogger('org.qubes.Labels1')
 log.addHandler(JournalHandler(SYSLOG_IDENTIFIER='qubesdbus.labels'))
