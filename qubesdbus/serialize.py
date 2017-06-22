@@ -84,7 +84,10 @@ def domain_data(vm):
 
     # Additional data
     result['state'] = serialize_state(vm.get_power_state())
-    result['networked'] = serialize_val(vm.is_networked())
+    if vm.name == 'dom0':
+        result['networked'] = False
+    else:
+        result['networked'] = serialize_val(vm.is_networked())
     return result
 
 
