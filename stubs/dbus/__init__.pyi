@@ -1,14 +1,15 @@
 # Stubs for dbus
+from typing import Any, Optional, Union, Callable
 
+import dbus._dbus
 import dbus.mainloop
 import dbus.proxies
-import dbus._dbus
-from typing import Optional, Union, Callable
+import dbus.connection
 
 
 class Interface(object):
     def __init__(self, object: Union[dbus.proxies.ProxyObject, Interface], dbus_interface: str) -> None: ...
-    def get_dbus_method(self, member: str, dbus_interface: Optional[str]=...) -> Callable: ...
+    def get_dbus_method(self, member: str, dbus_interface: Optional[str]=...) -> Any: ...
 
 
 class Bus(dbus.bus.BusConnection):
@@ -17,7 +18,22 @@ class Bus(dbus.bus.BusConnection):
                 mainloop: Optional[dbus.mainloop.NativeMainLoop]=...
                ) -> dbus.bus.BusConnection: ...
 
-def SessionBus() -> dbus._dbus.SessionBus: ...
+    def add_signal_receiver(self, handler_function, signal_name: str=...,
+                            dbus_interface:str=..., bus_name:str=...,
+                            path:str=..., **keywords) -> dbus.connection.SignalMatch: ...
+
+class SessionBus(Bus):
+    def __new__(cls, 
+                private: Optional[bool]=..., 
+                mainloop: Optional[dbus.mainloop.NativeMainLoop]=...
+                ) -> Bus: ...
+
+    def remove_signal_receiver(self, handler_or_match ,
+                               signal_name=Optional[str],
+                               dbus_interface=Optional[str],
+                               bus_name=Optional[str],
+                               path=Optional[str],
+                               **keywords) -> None: ...
 
 class String(str): ...
 class Boolean(int): ...

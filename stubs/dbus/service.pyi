@@ -7,9 +7,15 @@ from typing import Any, Optional, Tuple, Union
 
 
 class Object(dbus.Interface):
+
     def __init__(self, conn: Optional[Union[BusName,Connection]] = ..., 
 				object_path: Optional[str] = ..., 
 				bus_name: Optional[BusName] = ...) -> None: ...
+
+    @property
+    def _object_path(self) -> str: ...
+
+    def remove_from_connection(self, connection: Connection = None, path: str = None) -> None: ...
 
 def method(
         dbus_interface: str=...,
