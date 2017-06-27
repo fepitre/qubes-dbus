@@ -144,16 +144,18 @@ class QubesDbusProxy(object):
             log.warn('Unknown %s from %s %s %s', event, vm, args, kwargs)
 
 
-def property_get(proxy, name):
-    # type: (dbus.proxies.ProxyObject, str, Any) -> None
+def property_get(proxy: dbus.proxies.ProxyObject, name: str) -> Any:
     ''' Helper for setting a property on a helper '''
-    func = proxy.get_dbus_method('Get', 'org.freedesktop.DBus.Properties')
+    func = proxy.get_dbus_method(
+        'Get', dbus_interface='org.freedesktop.DBus.Properties')
     func('', name)
 
-def property_set(proxy, name, value):
-    # type: (dbus.proxies.ProxyObject, str, Any) -> None
+
+def property_set(proxy: dbus.proxies.ProxyObject, name: str,
+                 value: Any) -> None:
     ''' Helper for setting a property on a helper '''
-    func = proxy.get_dbus_method('Set', 'org.freedesktop.DBus.Properties')
+    func = proxy.get_dbus_method(
+        'Set', dbus_interface='org.freedesktop.DBus.Properties')
     func('', name, value)
 
 
