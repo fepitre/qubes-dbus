@@ -30,10 +30,12 @@ from qubesadmin.label import Label
 from qubesadmin.vm import QubesVM
 from qubesadmin.devices import DeviceInfo
 
-DOMAIN_STATE_PROPERTIES = ['is_halted',
-                           'is_paused',
-                           'is_running',
-                           'is_qrexec_running', ]
+DOMAIN_STATE_PROPERTIES = [
+    'is_halted',
+    'is_paused',
+    'is_running',
+    'is_qrexec_running',
+]
 
 
 def qubes_data(app):
@@ -65,6 +67,7 @@ def serialize_state(state):
         return 'Started'
     else:
         return '=>%s<=' % state
+
 
 def domain_data(vm: QubesVM) -> Dict[dbus.String, Any]:
     ''' Serializes a `qubes.vm.qubesvm.QubesVM` to a dictionary '''
@@ -140,8 +143,10 @@ def device_collection_data(collection: DeviceCollection) -> dbus.Array:
 
 
 def device_data(dev):
-    return {serialize_val(prop): serialize_val(getattr(dev, prop))
-            for prop in dir(dev) if not prop.startswith('_')}
+    return {
+        serialize_val(prop): serialize_val(getattr(dev, prop))
+        for prop in dir(dev) if not prop.startswith('_')
+    }
 
 
 def label_path(label: Label) -> dbus.ObjectPath:
