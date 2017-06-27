@@ -22,12 +22,16 @@ import logging
 import pprint
 import sys
 
-import qubesadmin
 import systemd.journal
-from gi.repository import GLib
 
+import qubesadmin
 import qubesdbus.serialize
-import qubesdbus.service
+from qubesdbus.service import ObjectManager, PropertiesObject
+
+import gi  # isort:skip
+gi.require_version('Gtk', '3.0')  # isort:skip
+from gi.repository import GLib  # isort:skip pylint:disable=wrong-import-position
+
 
 log = logging.getLogger('qubesdbus.DomainManager1')
 log.addHandler(
@@ -38,14 +42,14 @@ log.propagate = True
 pp = pprint.PrettyPrinter()
 
 
-class DeviceManager(qubesdbus.service.ObjectManager):
+class DeviceManager(ObjectManager):
     def __init__(self, data):
         super(DeviceManager, self).__init__()
         self.managed_objects = [Device(self.bus, self.bus_name, self.bus_path,
                                        dev) for dev in data]
 
 
-class Device(qubesdbus.service.PropertiesObject):
+class Device(PropertiesObject):
     def __init__(self, bus, bus_name, bus_path, data):
         self.properties = data
         pp.pprint(data)
