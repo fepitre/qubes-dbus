@@ -32,11 +32,10 @@ import gi  # isort:skip
 gi.require_version('Gtk', '3.0')  # isort:skip
 from gi.repository import GLib  # isort:skip pylint:disable=wrong-import-position
 
-
 log = logging.getLogger('qubesdbus.DomainManager1')
 log.addHandler(
-    systemd.journal.JournalHandler(
-        level=logging.DEBUG, SYSLOG_IDENTIFIER='qubesdbus.domain_manager'))
+    systemd.journal.JournalHandler(level=logging.DEBUG, SYSLOG_IDENTIFIER=
+                                   'qubesdbus.domain_manager'))
 log.propagate = True
 
 pp = pprint.PrettyPrinter()
@@ -45,8 +44,9 @@ pp = pprint.PrettyPrinter()
 class DeviceManager(ObjectManager):
     def __init__(self, data):
         super(DeviceManager, self).__init__()
-        self.managed_objects = [Device(self.bus, self.bus_name, self.bus_path,
-                                       dev) for dev in data]
+        self.managed_objects = [
+            Device(self.bus, self.bus_name, self.bus_path, dev) for dev in data
+        ]
 
 
 class Device(PropertiesObject):
