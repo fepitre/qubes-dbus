@@ -47,11 +47,11 @@ class Domain(qubesdbus.service.PropertiesObject):
 
     def __init__(self, bus_name: BusName, path_prefix: str,
                  data: Dict[Union[str, dbus.String], Any]) -> None:
-        obj_path = os.path.join(path_prefix, 'domains', str(data['qid']))
-
-        super().__init__(bus_name, obj_path, Domain.INTERFACE, data)
-
+        self.properties = {k:v for k, v in data.items() if k not in ['devices']}
+        bus_path = '/'.join([bus_path, 'domains', str(data['qid'])])
         self.name = data['name']
+        super(Domain, self).__init__(self.name, INTERFACE, self.properties, bus=bus,
+                                     bus_name=bus_name, bus_path=bus_path)
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
     def Set(self, interface, name,

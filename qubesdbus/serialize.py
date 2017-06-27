@@ -36,6 +36,8 @@ DOMAIN_STATE_PROPERTIES = [
     'is_qrexec_running',
 ]
 
+DEVICE_TYPES = ['block', 'pci']
+
 
 def qubes_data(app):
     ''' Serialize `qubes.Qubes` to a dictionary '''
@@ -85,6 +87,14 @@ def domain_data(vm: QubesVM) -> Dict[dbus.String, Any]:
         result['networked'] = False
     else:
         result['networked'] = serialize_val(vm.is_networked())
+
+    result['devices'] = dict()  # type: Dict[dbus.String,dbus.Array]
+    for dev_type in DEVICE_TYPES:
+        dev_collection = device_collection_data(
+            vm.devices[dev_type])  # type: dbus.Array
+        dbus_dev_type = serialize_val(dev_type)  # type: dbus.String
+        result['devices'][dbus_dev_type] = dev_collection
+
     return result
 
 
