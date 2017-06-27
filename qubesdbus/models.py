@@ -47,15 +47,32 @@ class Domain(qubesdbus.service.PropertiesObject):
 
     def __init__(self, bus_name: BusName, path_prefix: str,
                  data: Dict[Union[str, dbus.String], Any]) -> None:
-        self.properties = {k:v for k, v in data.items() if k not in ['devices']}
-        bus_path = '/'.join([bus_path, 'domains', str(data['qid'])])
+        new_data = {k: v for k, v in data.items() if k not in ['devices']}
+        obj_path = os.path.join(path_prefix, 'domains', str(data['qid']))
+
+        super().__init__(bus_name, obj_path, Domain.INTERFACE, new_data)
+
         self.name = data['name']
-        super(Domain, self).__init__(self.name, INTERFACE, self.properties, bus=bus,
-                                     bus_name=bus_name, bus_path=bus_path)
+
+        if 'devices' not in data:
+            return
+
+        self.devices = []  # type: List[Device]
+        for dev_type, dev_col in data['devices'].items():
+            if dev_type == 'block':
+                for dev_info in dev_col:
+                    block = BlockDevice(bus_name, obj_path, dev_info)
+                    self.devices.append(block)
+            elif dev_type == 'pci':
+                for dev_info in dev_col:
+                    pci = PciDevice(bus_name, obj_path, dev_info)
+                    self.devices.append(pci)
+            else:
+                print("Unknown device type %s" % dev_type)
+                continue
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
-    def Set(self, interface, name,
-            value):  # type: (str, dbus.String, Any) -> None
+    def Set(self, interface: str, name: str, value: Any) -> None:
         ''' Set a property value. '''
         if name == 'state':
             cur_state = self.properties[name]
@@ -135,3 +152,42 @@ class Label(qubesdbus.service.PropertiesObject):
         name = data['name']
         obj_path = os.path.join(prefix_path, 'labels', name)
         super(Label, self).__init__(bus_name, obj_path, Label.INTERFACE, data)
+
+
+class Device(qubesdbus.service.PropertiesObject):
+    ''' Represents a device provided by some domain. Its D-Bus object path is
+	`org/qubes/DomainManager1/domains/{DEV_CLASS}/NAME`
+    '''
+
+    INTERFACE = 'org.qubes.Device1'
+
+    def __init__(self, bus_name: dbus.service.BusName, obj_path: str,
+                 data: dbus.Dictionary) -> None:
+        super().__init__(bus_name, obj_path, Device.INTERFACE, data)
+
+
+class PciDevice(Device):
+    ''' Implements the *org.qubes.Device* interface for a pci device. '''
+
+    def __init__(self, bus_name: dbus.service.BusName, prefix_path: str,
+                 data: dbus.Dictionary) -> None:
+        assert 'libvirt_name' in data[
+            'data'], "PCIDevice provided no libvirt_name field"
+
+        obj_path = os.path.join(prefix_path, 'pci',
+                                data['data']['libvirt_name'])
+
+        super().__init__(bus_name, obj_path, data)
+
+
+class BlockDevice(Device):
+    ''' Implements the *org.qubes.Device* interface for a block device. '''
+
+    def __init__(self, bus_name: dbus.service.BusName, prefix_path: str,
+                 data: dbus.Dictionary) -> None:
+        assert 'ident' in data, "BlockDevice provided no ident field"
+
+        ident = os.path.basename(data['ident'])
+        obj_path = os.path.join(prefix_path, 'block', ident)
+
+        super().__init__(bus_name, obj_path, data)
