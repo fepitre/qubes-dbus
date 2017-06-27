@@ -29,7 +29,7 @@ from systemd.journal import JournalHandler
 
 import qubesadmin
 import qubesdbus.serialize
-from qubesdbus.domain import Domain
+from qubesdbus.models import Domain
 from qubesdbus.service import ObjectManager, PropertiesObject
 
 import gi  # isort:skip

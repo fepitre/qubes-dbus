@@ -27,6 +27,7 @@ from systemd.journal import JournalHandler
 import qubesadmin
 import qubesdbus.serialize
 from qubesdbus.service import ObjectManager, PropertiesObject
+from qubesdbus.models import Label
 
 import gi  # isort:skip
 gi.require_version('Gtk', '3.0')  # isort:skip
@@ -49,17 +50,6 @@ class Labels(ObjectManager):
     def _new_label(self, label_data):
         return Label(self.bus, self.bus_name, self.bus_path, label_data)
 
-
-class Label(PropertiesObject):
-    ''' Represents a qubes label. Its D-Bus object path is
-	`org/qubes/Labels1/labels/COLORNAME`
-    '''
-
-    def __init__(self, bus, bus_name, bus_path, data):
-        bus_path = '/'.join([bus_path, 'labels', data['name']])
-        name = data['name']
-        super(Label, self).__init__(name, 'org.qubes.Label1', data, bus=bus,
-                                    bus_name=bus_name, bus_path=bus_path)
 
 
 def main(args=None):

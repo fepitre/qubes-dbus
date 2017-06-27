@@ -20,7 +20,7 @@
 from __future__ import absolute_import
 
 from .constants import * # pylint: disable=wildcard-import
-from .domain import Domain
+from .models import Domain, Label
 from .domain_manager import DomainManager
 from .labels import Labels
 from .constants import NAME_PREFIX, PATH_PREFIX, VERSION

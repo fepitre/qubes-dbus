@@ -4,6 +4,7 @@
 # The Qubes OS Project, https://www.qubes-os.org/
 #
 # Copyright (C) 2016 Bahtiar `kalkin-` Gadimov <bahtiar@gadimov.de>
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -17,7 +18,12 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-''' D-Bus Domain object '''
+''' Contains models for D-Bus instances we provide.
+
+Contains the folowing interface implementations:
+* *org.qubes.Domain*
+* *org.qubes.Label*
+'''
 
 from typing import Any, Dict, Union
 
@@ -117,3 +123,14 @@ def valid_state_change(cur_state: DBusString, state: DBusString) -> bool:
         return True
 
     return False
+
+class Label(qubesdbus.service.PropertiesObject):
+    ''' Represents a qubes label. Its D-Bus object path is
+	`org/qubes/Labels1/labels/COLORNAME`
+    '''
+
+    def __init__(self, bus, bus_name, bus_path, data):
+        bus_path = '/'.join([bus_path, 'labels', data['name']])
+        name = data['name']
+        super(Label, self).__init__(name, 'org.qubes.Label1', data, bus=bus,
+                                    bus_name=bus_name, bus_path=bus_path)
