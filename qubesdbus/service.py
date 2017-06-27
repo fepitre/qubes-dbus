@@ -47,26 +47,9 @@ class DbusServiceObject(dbus.service.Object):
     ''' A class implementing a useful shortcut for writing own D-Bus Services
     '''
 
-    def __init__(self, bus=None, bus_name=None, bus_path=None):
-        # type: (SessionBus, BusName, str) -> None
-        if bus is not None:
-            self.bus = bus
-        else:
-            self.bus = dbus.SessionBus()
-
-        if bus_path is not None:
-            self.bus_path = bus_path
-        else:
-            self.bus_path = ''.join([PATH_PREFIX, '/', self.__class__.__name__,
-                                     str(VERSION)])
-
-        if bus_name is not None:
-            self.bus_name = bus_name
-        else:
-            _name = ''.join([NAME_PREFIX, '.', self.__class__.__name__,
-                             str(VERSION)])
-            self.bus_name = dbus.service.BusName(_name, self.bus)
-        super(DbusServiceObject, self).__init__(self.bus_name, self.bus_path)
+    def __init__(self, bus_name: dbus.service.BusName, obj_path: str):
+        super(DbusServiceObject, self).__init__(bus_name=bus_name,
+                                                object_path=obj_path)
 
 
 class ObjectManager(DbusServiceObject):
@@ -75,9 +58,13 @@ class ObjectManager(DbusServiceObject):
     '''
 
     # pylint: disable=too-few-public-methods
-    def __init__(self, bus=None, bus_name=None, bus_path=None):
-        super(ObjectManager, self).__init__(bus=bus, bus_name=bus_name,
-                                            bus_path=bus_path)
+    def __init__(self, name: str, obj_path: str):
+        bus = dbus.SessionBus()
+        bus_name = dbus.service.BusName(name, bus=bus, allow_replacement=True,
+                                        replace_existing=True)
+        super().__init__(bus_name=bus_name, obj_path=obj_path)
+        self.bus_name = bus_name
+        self.bus = bus
         self.managed_objects = []  # type: PropertiesObject
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.ObjectManager",
@@ -94,16 +81,18 @@ class PropertiesObject(DbusServiceObject):
     # pylint: disable=invalid-name
     ''' Implements `org.freedesktop.DBus.Properties` interface. '''
 
-    def __init__(self, name, iface, data, *args, **kwargs):
-        self.properties = data
-        self.id = name
-        self.iface = iface
-        self.log = logging.getLogger(name)
-        self.log.addHandler(
-            JournalHandler(level=logging.DEBUG, SYSLOG_IDENTIFIER='qubesdbus.'
-                           + name))
+    def __init__(self, bus_name: dbus.service.BusName, obj_path: str,
+                 iface: str, data: dict):
+        assert iface, "No interface provided for PropertiesObject"
 
-        super(PropertiesObject, self).__init__(*args, **kwargs)
+        super().__init__(bus_name, obj_path)
+
+        self.properties = data
+        self.id = obj_path
+        self.iface = iface
+        self.log = logging.getLogger(obj_path)
+        self.log.addHandler(
+            JournalHandler(level=logging.DEBUG, SYSLOG_IDENTIFIER=obj_path))
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
     def Get(self, interface, property_name):
