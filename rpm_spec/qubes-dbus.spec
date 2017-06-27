@@ -53,7 +53,7 @@ python3 setup.py install --single-version-externally-managed -O1 --root=$RPM_BUI
 mkdir -p $RPM_BUILD_ROOT/usr/share
 mkdir -p $RPM_BUILD_ROOT/etc/xdg/autostart
 cp -r dbus-1 $RPM_BUILD_ROOT/usr/share/dbus-1
-cp -r autostart/qubes-dbus-proxy.desktop $RPM_BUILD_ROOT/etc/xdg/autostart
+cp autostart/*.desktop $RPM_BUILD_ROOT/etc/xdg/autostart
 
 %clean
 rm -rf $RPM_BUILD_ROOT
