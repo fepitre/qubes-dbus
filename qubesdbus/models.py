@@ -25,12 +25,12 @@ Contains the folowing interface implementations:
 * *org.qubes.Label*
 '''
 
+import os.path
 from typing import Any, Dict, Union
 
 import dbus
-from dbus.exceptions import ValidationException
 import dbus.service
-from dbus._dbus import SessionBus
+from dbus.exceptions import ValidationException
 from dbus.service import BusName
 
 import qubesadmin
@@ -38,21 +38,20 @@ import qubesdbus.service
 
 DBusString = Union[str, dbus.String]
 
-INTERFACE = 'org.qubes.Domain'
-
 
 class Domain(qubesdbus.service.PropertiesObject):
     ''' `Domain` is managed by `DomainManager1` and represents a domain. Its D-Bus
         object path is `/org/qubes/DomainManager1/domains/QID`
     '''
+    INTERFACE = 'org.qubes.Domain'
 
-    def __init__(self, bus: SessionBus, bus_name: BusName, bus_path: str,
+    def __init__(self, bus_name: BusName, path_prefix: str,
                  data: Dict[Union[str, dbus.String], Any]) -> None:
-        self.properties = data
-        bus_path = '/'.join([bus_path, 'domains', str(data['qid'])])
+        obj_path = os.path.join(path_prefix, 'domains', str(data['qid']))
+
+        super().__init__(bus_name, obj_path, Domain.INTERFACE, data)
+
         self.name = data['name']
-        super(Domain, self).__init__(self.name, INTERFACE, data, bus=bus,
-                                     bus_name=bus_name, bus_path=bus_path)
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
     def Set(self, interface, name,
@@ -124,13 +123,16 @@ def valid_state_change(cur_state: DBusString, state: DBusString) -> bool:
 
     return False
 
+
 class Label(qubesdbus.service.PropertiesObject):
     ''' Represents a qubes label. Its D-Bus object path is
 	`org/qubes/Labels1/labels/COLORNAME`
     '''
 
-    def __init__(self, bus, bus_name, bus_path, data):
-        bus_path = '/'.join([bus_path, 'labels', data['name']])
+    INTERFACE = 'org.qubes.Label1'
+
+    def __init__(self, bus_name, prefix_path, data):
         name = data['name']
-        super(Label, self).__init__(name, 'org.qubes.Label1', data, bus=bus,
-                                    bus_name=bus_name, bus_path=bus_path)
+        obj_path = os.path.join(prefix_path, 'labels', name)
+        super(Label, self).__init__(bus_name, obj_path, Label.INTERFACE, data)
+
