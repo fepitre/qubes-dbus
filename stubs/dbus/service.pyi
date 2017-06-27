@@ -3,7 +3,7 @@
 import dbus
 from dbus.connection import Connection
 from dbus._dbus import SessionBus
-from typing import Optional, Tuple, Callable, Union
+from typing import Any, Optional, Tuple, Union
 
 
 class Object(dbus.Interface):
@@ -25,14 +25,14 @@ def method(
         utf8_strings: bool=...,
         byte_arrays: bool=...,
 
-        ) -> Callable: ...
+        ) -> Any: ...
 
 def signal(
         dbus_interface: str=...,
         signature: Optional[str]=...,
         path_keyword: Optional[str]=...,
     	rel_path_keyword: Optional[str]=...,
-		) -> Callable: ...
+		) -> Any: ...
 
 class BusName(object):
 	def __new__(cls,
