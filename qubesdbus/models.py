@@ -135,4 +135,3 @@ class Label(qubesdbus.service.PropertiesObject):
         name = data['name']
         obj_path = os.path.join(prefix_path, 'labels', name)
         super(Label, self).__init__(bus_name, obj_path, Label.INTERFACE, data)
-

@@ -77,7 +77,7 @@ class DomainManager(PropertiesObject):
             'Unknown': lambda _, __: None,
         }
         self.signal_matches = {
-        }  # type: Dict[dbus.ObjectPath, List[DBusSignalMatch]]
+        }  # type: Dict[str, List[DBusSignalMatch]]
 
         for domain in self.managed_objects:
             obj_path = domain._object_path  # pylint: disable=protected-access
@@ -94,7 +94,7 @@ class DomainManager(PropertiesObject):
             for o in self.managed_objects
         }
 
-    def _setup_signals(self, obj_path: dbus.ObjectPath):
+    def _setup_signals(self, obj_path: str):
         def emit_state_signal(dbus_interface,
                               changed_properties: DBusProperties,
                               invalidated: dbus.Array=None  # pylint: disable=unused-argument
@@ -166,7 +166,7 @@ class DomainManager(PropertiesObject):
         self.managed_objects.append(domain)
         log.info('Added domain %s', vm['name'])
         # pylint: disable=protected-access
-        obj_path = domain._object_path  # type: dbus.Object_Path
+        obj_path = domain._object_path
         self._setup_signals(obj_path)
         self.DomainAdded(INTERFACE, obj_path)
         return True
@@ -195,7 +195,7 @@ class DomainManager(PropertiesObject):
             return False
         for vm in self.managed_objects:
             # pylint: disable=protected-access
-            obj_path = vm._object_path  # type: dbus.ObjectPath
+            obj_path = vm._object_path
             if obj_path == vm_dbus_path:
                 for signal_matcher in self.signal_matches[obj_path]:
                     self.bus.remove_signal_receiver(signal_matcher)

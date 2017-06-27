@@ -21,6 +21,7 @@
 ''' Service classes '''
 
 from __future__ import absolute_import
+from typing import Any
 
 import logging
 
@@ -30,26 +31,17 @@ import dbus.service
 
 from systemd.journal import JournalHandler
 
-from .constants import NAME_PREFIX, PATH_PREFIX, VERSION
-
 dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
-try:
-    # Check mypy types. pylint: disable=ungrouped-imports, unused-import
-    from typing import Any
-    from dbus._dbus import SessionBus
-    from dbus.service import BusName
-except ImportError:
-    pass
+from dbus.service import BusName
 
 
 class DbusServiceObject(dbus.service.Object):
     ''' A class implementing a useful shortcut for writing own D-Bus Services
     '''
 
-    def __init__(self, bus_name: dbus.service.BusName, obj_path: str):
-        super(DbusServiceObject, self).__init__(bus_name=bus_name,
-                                                object_path=obj_path)
+    def __init__(self, bus_name: BusName, obj_path: str) -> None:
+        super().__init__(bus_name=bus_name, object_path=obj_path)
 
 
 class ObjectManager(DbusServiceObject):
@@ -57,15 +49,14 @@ class ObjectManager(DbusServiceObject):
         interface.
     '''
 
-    # pylint: disable=too-few-public-methods
-    def __init__(self, name: str, obj_path: str):
+    def __init__(self, name: str, obj_path: str) -> None:
         bus = dbus.SessionBus()
-        bus_name = dbus.service.BusName(name, bus=bus, allow_replacement=True,
-                                        replace_existing=True)
+        bus_name = BusName(name, bus=bus, allow_replacement=True,
+                           replace_existing=True)
         super().__init__(bus_name=bus_name, obj_path=obj_path)
         self.bus_name = bus_name
         self.bus = bus
-        self.managed_objects = []  # type: PropertiesObject
+        self.managed_objects = []  # type: List[PropertiesObject]
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.ObjectManager",
                          out_signature="a{oa{sa{sv}}}")
@@ -81,8 +72,8 @@ class PropertiesObject(DbusServiceObject):
     # pylint: disable=invalid-name
     ''' Implements `org.freedesktop.DBus.Properties` interface. '''
 
-    def __init__(self, bus_name: dbus.service.BusName, obj_path: str,
-                 iface: str, data: dict):
+    def __init__(self, bus_name: BusName, obj_path: str, iface: str,
+                 data: dict) -> None:
         assert iface, "No interface provided for PropertiesObject"
 
         super().__init__(bus_name, obj_path)
@@ -107,7 +98,7 @@ class PropertiesObject(DbusServiceObject):
         return self.properties
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
-    def Set(self, interface, name, value):  # type: (str, dbus.String, Any) -> None
+    def Set(self, interface: str, name: str, value: Any) -> None:
         ''' Set a property value.
         ''' # pylint: disable=unused-argument
         new_value = value
