@@ -91,7 +91,9 @@ def domain_data(vm: QubesVM) -> Dict[dbus.String, Any]:
 def devices_data(app):
     result = []
     for vm in app.domains:
-        for dev_class, dev_collection in vm.devices.items():
+        types = ['block', 'pci']
+        for dev_class in types:
+            dev_collection = vm.devices[dev_class]
             result += serialize_val(dev_collection)
     return result
 
