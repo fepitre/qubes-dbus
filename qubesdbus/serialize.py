@@ -19,20 +19,16 @@
 ''' Collection of serialization helpers '''
 
 import re
+from typing import Any, Dict, List
 
 import dbus
-import qubesadmin
-import qubesadmin.devices as devices
-import qubesadmin.vm
 
-try:
-    # Check mypy dependencies. pylint: disable=ungrouped-imports,unused-import
-    from typing import Any, Callable, Tuple, List, Dict
-    from qubesadmin.vm import QubesVM
-    from qubesadmin import Qubes
-    from qubesadmin.label import Label
-except ImportError:
-    pass
+import qubesadmin
+from qubesadmin.devices import DeviceCollection, DeviceInfo
+import qubesadmin.vm
+from qubesadmin.label import Label
+from qubesadmin.vm import QubesVM
+from qubesadmin.devices import DeviceInfo
 
 DOMAIN_STATE_PROPERTIES = ['is_halted',
                            'is_paused',
@@ -131,9 +127,9 @@ def serialize_val(value):
         return label_path(value)
     elif isinstance(value, qubesadmin.vm.QubesVM):
         return domain_path(value)
-    elif isinstance(value, devices.DeviceCollection):
+    elif isinstance(value, DeviceCollection):
         return dbus.Array(device_collection_data(value), signature='a{sv}')
-    elif isinstance(value, devices.DeviceInfo):
+    elif isinstance(value, DeviceInfo):
         return dbus.Dictionary(device_data(value), signature='sv')
     elif isinstance(value, re._pattern_type):
         return dbus.String(value.pattern)
