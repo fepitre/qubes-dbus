@@ -50,9 +50,9 @@ foo bar
 %install
 
 python3 setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
-mkdir -p $RPM_BUILD_ROOT/usr/share
+mkdir -p $RPM_BUILD_ROOT/usr/share/dbus-1/services
 mkdir -p $RPM_BUILD_ROOT/etc/xdg/autostart
-cp -r dbus-1 $RPM_BUILD_ROOT/usr/share/dbus-1
+cp dbus-1/services/*.service $RPM_BUILD_ROOT/usr/share/dbus-1/services
 cp autostart/*.desktop $RPM_BUILD_ROOT/etc/xdg/autostart
 
 %clean
