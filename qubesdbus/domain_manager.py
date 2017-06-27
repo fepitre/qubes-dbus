@@ -30,7 +30,7 @@ from systemd.journal import JournalHandler
 import qubesadmin
 import qubesdbus.serialize
 from qubesdbus.models import Domain
-from qubesdbus.service import ObjectManager, PropertiesObject
+from qubesdbus.service import PropertiesObject
 
 import gi  # isort:skip
 gi.require_version('Gtk', '3.0')  # isort:skip
@@ -45,9 +45,12 @@ DBusSignalMatch = dbus.connection.SignalMatch
 DBusString = Union[str, dbus.String]
 DBusProperties = Dict[DBusString, Any]
 
+SERVICE_NAME = 'org.qubes.DomainManager1'
+SERVICE_PATH = '/org/qubes/DomainManager1'
 INTERFACE = 'org.qubes.DomainManager1'
 
-class DomainManager(PropertiesObject, ObjectManager):
+
+class DomainManager(PropertiesObject):
     ''' The `DomainManager` is the equivalent to the `qubes.Qubes` object for
         managing domains. Implements:
             * `org.freedesktop.DBus.ObjectManager` interface for acquiring all the
@@ -57,21 +60,39 @@ class DomainManager(PropertiesObject, ObjectManager):
     '''
 
     def __init__(self, qubes_data: DBusProperties, domains: List[DBusProperties]) -> None:
-        super(DomainManager, self).__init__('DomainManager1', INTERFACE, qubes_data)
+        bus = dbus.SessionBus()
+        bus_name = dbus.service.BusName(SERVICE_NAME, bus=bus,
+                                        allow_replacement=True,
+                                        replace_existing=True)
+        super().__init__(bus_name, SERVICE_PATH, INTERFACE, qubes_data)
+        self.bus_name = bus_name
+        self.bus = bus
         self.managed_objects = [self._proxify_domain(vm) for vm in domains]
         self.state_signals = {
             'Starting': self.Starting,
-            'Started' : self.Started,
-            'Failed'  : self.Failed,
-            'Halting' : self.Halting,
-            'Halted'  : self.Halted,
-            'Unknown' : lambda _, __: None,
+            'Started': self.Started,
+            'Failed': self.Failed,
+            'Halting': self.Halting,
+            'Halted': self.Halted,
+            'Unknown': lambda _, __: None,
         }
-        self.signal_matches = {} # type: Dict[dbus.ObjectPath, List[DBusSignalMatch]]
+        self.signal_matches = {
+        }  # type: Dict[dbus.ObjectPath, List[DBusSignalMatch]]
 
         for domain in self.managed_objects:
-            obj_path = domain._object_path # pylint: disable=protected-access
+            obj_path = domain._object_path  # pylint: disable=protected-access
             self._setup_signals(obj_path)
+
+    @dbus.service.method(dbus_interface="org.freedesktop.DBus.ObjectManager",
+                         out_signature="a{oa{sa{sv}}}")
+    def GetManagedObjects(self):
+        ''' Returns the domain objects paths and their supported interfaces and
+            properties.
+        '''  # pylint: disable=protected-access
+        return {
+            o._object_path: o.properties_iface()
+            for o in self.managed_objects
+        }
 
     def _setup_signals(self, obj_path: dbus.ObjectPath):
         def emit_state_signal(dbus_interface,
@@ -186,7 +207,7 @@ class DomainManager(PropertiesObject, ObjectManager):
 
     def _proxify_domain(self, vm):
         # type: (Dict[Union[str,DBusString], Any]) -> Domain
-        return Domain(self.bus, self.bus_name, self.bus_path, vm)
+        return Domain(self.bus_name, SERVICE_PATH, vm)
 
 
 def main(args=None):  # pylint: disable=unused-argument

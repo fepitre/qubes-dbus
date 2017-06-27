@@ -26,14 +26,17 @@ from systemd.journal import JournalHandler
 
 import qubesadmin
 import qubesdbus.serialize
-from qubesdbus.service import ObjectManager, PropertiesObject
+from qubesdbus.service import ObjectManager
 from qubesdbus.models import Label
 
 import gi  # isort:skip
 gi.require_version('Gtk', '3.0')  # isort:skip
 from gi.repository import GLib  # isort:skip pylint:disable=wrong-import-position
 
-log = logging.getLogger('org.qubes.Labels1')
+SERVICE_NAME = "org.qubes.Labels1"
+SERVICE_PATH = "/org/qubes/Labels1"
+
+log = logging.getLogger(SERVICE_NAME)
 log.addHandler(JournalHandler(SYSLOG_IDENTIFIER='qubesdbus.labels'))
 log.setLevel(logging.INFO)
 
@@ -44,11 +47,11 @@ class Labels(ObjectManager):
     '''
 
     def __init__(self, labels_data):
-        super(Labels, self).__init__()
+        super().__init__(SERVICE_NAME, SERVICE_PATH)
         self.managed_objects = [self._new_label(d) for d in labels_data]
 
     def _new_label(self, label_data):
-        return Label(self.bus, self.bus_name, self.bus_path, label_data)
+        return Label(self.bus_name, SERVICE_PATH, label_data)
 
 
 
