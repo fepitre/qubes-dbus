@@ -22,6 +22,7 @@ import re
 from typing import Any, Dict, List
 
 import dbus
+import dbus.proxies
 
 import qubesadmin
 from qubesadmin.devices import DeviceCollection, DeviceInfo
@@ -39,10 +40,9 @@ DOMAIN_STATE_PROPERTIES = [
 DEVICE_TYPES = ['block', 'pci']
 
 
-def qubes_data(app):
+def qubes_data(app: qubesadmin.Qubes) ->  dbus.Dictionary:
     ''' Serialize `qubes.Qubes` to a dictionary '''
-    # type: (Qubes) -> Dict[dbus.String, Any]
-    result = {}
+    result = dbus.Dictionary({}, signature='sv')
     for prop in app.property_list():
         name = str(prop)
         key = dbus.String(name)
@@ -70,7 +70,7 @@ def serialize_state(state):
         return '=>%s<=' % state
 
 
-def domain_data(vm: QubesVM) -> Dict[dbus.String, Any]:
+def domain_data(vm: QubesVM) -> dbus.Dictionary:
     ''' Serializes a `qubes.vm.qubesvm.QubesVM` to a dictionary '''
     result = dbus.Dictionary({}, signature='sv')
     for prop in vm.property_list():
@@ -88,12 +88,17 @@ def domain_data(vm: QubesVM) -> Dict[dbus.String, Any]:
     else:
         result['networked'] = serialize_val(vm.is_networked())
 
-    result['devices'] = dict()  # type: Dict[dbus.String,dbus.Array]
+    devices = dict()  # type: Dict[dbus.String,dbus.Array]
     for dev_type in DEVICE_TYPES:
         dev_collection = device_collection_data(
             vm.devices[dev_type])  # type: dbus.Array
+        if not dev_collection:
+            continue
         dbus_dev_type = serialize_val(dev_type)  # type: dbus.String
-        result['devices'][dbus_dev_type] = dev_collection
+        devices[dbus_dev_type] = dev_collection
+
+    if devices:
+        result['devices'] = devices
 
     return result
 
@@ -111,7 +116,8 @@ def devices_data(app):
 def label_data(lab: Label) -> Dict[dbus.String, Any]:
     ''' Serialize a `qubes.Label` to a dictionary '''
     result = {}
-    for name in dir(lab):
+    for _name in dir(lab):
+        name = dbus.String(_name)
         if name.startswith('_') or callable(getattr(lab, name)):
             continue
         try:
