@@ -28,7 +28,6 @@ from qubesadmin.devices import DeviceCollection, DeviceInfo
 import qubesadmin.vm
 from qubesadmin.label import Label
 from qubesadmin.vm import QubesVM
-from qubesadmin.devices import DeviceInfo
 
 DOMAIN_STATE_PROPERTIES = [
     'is_halted',
