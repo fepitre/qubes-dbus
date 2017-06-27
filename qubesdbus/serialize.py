@@ -66,9 +66,8 @@ def serialize_state(state):
     else:
         return '=>%s<=' % state
 
-def domain_data(vm):
+def domain_data(vm: QubesVM) -> Dict[dbus.String, Any]:
     ''' Serializes a `qubes.vm.qubesvm.QubesVM` to a dictionary '''
-    # type: (QubesVM) -> Dict[dbus.String, Any]
     result = dbus.Dictionary({}, signature='sv')
     for prop in vm.property_list():
         name = str(prop)
@@ -95,9 +94,8 @@ def devices_data(app):
     return result
 
 
-def label_data(lab):
+def label_data(lab: Label) -> Dict[dbus.String, Any]:
     ''' Serialize a `qubes.Label` to a dictionary '''
-    # type: (Label) -> Dict[dbus.String, Any]
     result = {}
     for name in dir(lab):
         if name.startswith('_') or callable(getattr(lab, name)):
@@ -137,7 +135,7 @@ def serialize_val(value):
         return dbus.String(value)
 
 
-def device_collection_data(collection):
+def device_collection_data(collection: DeviceCollection) -> dbus.Array:
     return [device_data(dev) for dev in collection.available()]
 
 
@@ -146,13 +144,11 @@ def device_data(dev):
             for prop in dir(dev) if not prop.startswith('_')}
 
 
-def label_path(label):
-    # type: (Label) -> dbus.ObjectPath
+def label_path(label: Label) -> dbus.ObjectPath:
     ''' Return the D-Bus object path for a `qubes.Label` '''
     return dbus.ObjectPath('/org/qubes/Labels1/labels/' + label.name)
 
 
-def domain_path(vm):
+def domain_path(vm: QubesVM) -> dbus.ObjectPath:
     ''' Return the D-Bus object path for a `qubes.vm.qubesvm.QubesVM` '''
-    # type: (qubes.vm.qubesvm.QubesVM) -> dbus.ObjectPath
     return dbus.ObjectPath('/org/qubes/DomainManager1/domains/' + str(vm.qid))
