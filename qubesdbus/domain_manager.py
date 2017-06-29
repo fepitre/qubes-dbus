@@ -20,6 +20,7 @@
 ''' org.qubes.DomainManager1 Service '''
 
 import logging
+import os.path
 import sys
 from typing import Any, Dict, List, Union
 
@@ -29,8 +30,8 @@ from systemd.journal import JournalHandler
 
 import qubesadmin
 import qubesdbus.serialize
-from qubesdbus.models import Domain
-from qubesdbus.service import PropertiesObject
+from qubesdbus.models import BlockDevice, Device, Domain, PciDevice
+from qubesdbus.service import ObjectManager, PropertiesObject
 
 import gi  # isort:skip
 gi.require_version('Gtk', '3.0')  # isort:skip
@@ -210,16 +211,40 @@ class DomainManager(PropertiesObject):
         return Domain(self.bus_name, SERVICE_PATH, vm)
 
 
+class BlockManager(ObjectManager):
+    def __init__(self, devices: List[BlockDevice]) -> None:
+        super().__init__('org.qubes.BlockManager1',
+                         '/org/qubes/BlockManager1')
+        self.managed_objects = devices
+
+
+class PciManager(ObjectManager):
+    def __init__(self, devices: List[PciDevice]) -> None:
+        super().__init__("org.qubes.PciManager1", '/org/qubes/PciManager1')
+        self.managed_objects = devices
+
+
 def main(args=None):  # pylint: disable=unused-argument
     ''' Main function starting the DomainManager1 service. '''
     loop = GLib.MainLoop()
     app = qubesadmin.Qubes()
     qubes_data = qubesdbus.serialize.qubes_data(app)
     domains = [qubesdbus.serialize.domain_data(vm) for vm in app.domains]
-    _ = DomainManager(qubes_data, domains)
-    print("Service running...")
+    domain_manager = DomainManager(qubes_data, domains)
+    devices = {}  # type: Dict[str, Dict[dbus.ObjectPath, List[Device]]]
+    for vm in domain_manager.managed_objects:
+        for dev in vm.devices:
+            dev_type = os.path.basename(os.path.dirname(dev.obj_path))
+            if dev_type not in devices:
+                devices[dev_type] = []
+            devices[dev_type].append(dev)
+
+    _ = BlockManager(devices['block'])
+    __ = PciManager(devices['pci'])
+
+    print("Services running...")
     loop.run()
-    print("Service stopped")
+    print("Services stopped")
     return 0
 
 
