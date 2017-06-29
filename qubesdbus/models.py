@@ -58,15 +58,19 @@ class Domain(qubesdbus.service.PropertiesObject):
             return
 
         self.devices = []  # type: List[Device]
+        self.properties['devices'] = []  # type: List[dbus.ObjectPath]
         for dev_type, dev_col in data['devices'].items():
-            if dev_type == 'block':
+            if dev_type in ['block', 'pci']:
                 for dev_info in dev_col:
-                    block = BlockDevice(bus_name, obj_path, dev_info)
-                    self.devices.append(block)
-            elif dev_type == 'pci':
-                for dev_info in dev_col:
-                    pci = PciDevice(bus_name, obj_path, dev_info)
-                    self.devices.append(pci)
+                    if dev_type == 'block':
+                        dev = BlockDevice(bus_name, obj_path, dev_info)
+                    elif dev_type == 'pci':
+                        dev = PciDevice(bus_name, obj_path, dev_info)
+                    else:
+                        assert False, "This should never happen"
+
+                    self.devices.append(dev)
+                    self.properties['devices'].append(dev.obj_path)
             else:
                 print("Unknown device type %s" % dev_type)
                 continue
