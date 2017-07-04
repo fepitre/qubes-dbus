@@ -60,9 +60,10 @@ class Domain(qubesdbus.service.PropertiesObject):
         if name == 'state':
             cur_state = self.properties[name]
             state = value
-            if not valid_state_change(cur_state, state):
-                msg = "State can't change from %s to %s" % (cur_state, state)
-                raise ValidationException(msg)
+            # Uncomment validation for more stability
+            # if not valid_state_change(cur_state, state):
+            #     msg = "State can't change from %s to %s" % (cur_state, state)
+            #     raise ValidationException(msg)
         super().Set(interface, name, value)
 
     @dbus.service.method("org.qubes.Domain", out_signature="b")
