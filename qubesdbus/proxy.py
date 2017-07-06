@@ -78,10 +78,11 @@ class QubesDbusProxy(object):
     def run(self):
         yield from self._events_dispatcher.listen_for_events()
 
-    def forward_vm_event(self, vm, event, *args, **kwargs):
+    def forward_vm_event(self, _, event, *args, **kwargs):
+        if 'vm' not in kwargs or event == 'domain-delete':
+            return
         try:
-            if vm is None:
-                return
+            vm = self.app.domains[kwargs['vm']]
             if is_garbage(event):
                 log.debug('Drop %s from %s', event, vm)
                 return
@@ -123,18 +124,16 @@ class QubesDbusProxy(object):
         except Exception as e:
             log.error(e)
 
-    def forward_app_event(self, vm, event, *args, **kwargs):
+    def forward_app_event(self, _, event, *args, **kwargs):
         try:
-            if vm is not None:
-                return
             proxy = app_proxy()
             if is_garbage(event):
-                log.debug('Drop %s from %s', event, vm)
+                log.debug('Drop event %s', event)
                 return
             elif event.startswith('property-set:'):
-                property_set(proxy, args[0],
-                            qubesdbus.serialize.serialize_val(args[1]))
-                log.info('App: %s %s %s %s', vm, event, args, kwargs)
+                property_set(proxy, kwargs['name'],
+                             qubesdbus.serialize.serialize_val(kwargs['newvalue']))
+                log.info('App: %s %s %s', event, args, kwargs)
             elif event == 'domain-delete':
                 func = proxy.get_dbus_method('RemoveDomain',
                                              'org.qubes.DomainManager1')
@@ -144,9 +143,9 @@ class QubesDbusProxy(object):
                     log.error('Could not remove vm via to dbus DomainManager')
                     log.info("Removed VM %s", vm_name)
             else:
-                log.warn('Unknown %s from %s %s %s', event, vm, args, kwargs)
+                log.warn('Unknown %s %s %s', event, args, kwargs)
         except Exception as e:
-            log.error(e)
+            log.warn('Unknown %s %s %s ', event, args, kwargs)
 
 
 def property_get(proxy: dbus.proxies.ProxyObject, name: str) -> Any:
