@@ -79,69 +79,75 @@ class QubesDbusProxy(object):
         yield from self._events_dispatcher.listen_for_events()
 
     def forward_vm_event(self, vm, event, *args, **kwargs):
-        if vm is None:
-            return
-        if is_garbage(event):
-            log.debug('Drop %s from %s', event, vm)
-            return
-        elif event.startswith('property-set:') and not self.new_vm:
-            proxy = vm_proxy(vm.qid)
-            property_set(proxy, kwargs['name'], qubesdbus.serialize.serialize_val(kwargs['newvalue']))
-            log.info('VM: %s %s %s %s', vm, event, args, kwargs)
-        elif event == 'domain-init' and vm.storage is None:
-            # looks like a new vm is created
-            self.new_vm.append(vm)
-            log.info('VM %s creation begins', vm)
-        elif event == 'domain-create-on-disk':
-            proxy = app_proxy()
-            func = proxy.get_dbus_method('AddDomain',
-                                         'org.qubes.DomainManager1')
-            data = qubesdbus.serialize.domain_data(vm)
-            create = False
-            if not func(data, create):
-                log.error('Could not add vm via to dbus DomainManager')
-            log.info('Added VM %s', data)
-            self.new_vm.remove(vm)
-        elif event in ('domain-spawn'):
-            proxy = vm_proxy(vm.qid)
-            property_set(proxy, 'state', 'Starting')
-        elif event == 'domain-start':
-            proxy = vm_proxy(vm.qid)
-            property_set(proxy, 'state', 'Started')
-        elif event == 'domain-pre-shutdown':
-            proxy = vm_proxy(vm.qid)
-            property_set(proxy, 'state', 'Halting')
-        elif event == 'domain-shutdown':
-            proxy = vm_proxy(vm.qid)
-            if property_get(proxy, 'state') == 'Starting':
-                property_set(proxy, 'state', 'Failed')
+        try:
+            if vm is None:
+                return
+            if is_garbage(event):
+                log.debug('Drop %s from %s', event, vm)
+                return
+            elif event.startswith('property-set:') and not self.new_vm:
+                proxy = vm_proxy(vm.qid)
+                property_set(proxy, kwargs['name'], qubesdbus.serialize.serialize_val(kwargs['newvalue']))
+                log.info('VM: %s %s %s %s', vm, event, args, kwargs)
+            elif event == 'domain-init' and vm.storage is None:
+                # looks like a new vm is created
+                self.new_vm.append(vm)
+                log.info('VM %s creation begins', vm)
+            elif event == 'domain-create-on-disk':
+                proxy = app_proxy()
+                func = proxy.get_dbus_method('AddDomain',
+                                            'org.qubes.DomainManager1')
+                data = qubesdbus.serialize.domain_data(vm)
+                create = False
+                if not func(data, create):
+                    log.error('Could not add vm via to dbus DomainManager')
+                log.info('Added VM %s', data)
+                self.new_vm.remove(vm)
+            elif event in ('domain-spawn'):
+                proxy = vm_proxy(vm.qid)
+                property_set(proxy, 'state', 'Starting')
+            elif event == 'domain-start':
+                proxy = vm_proxy(vm.qid)
+                property_set(proxy, 'state', 'Started')
+            elif event == 'domain-pre-shutdown':
+                proxy = vm_proxy(vm.qid)
+                property_set(proxy, 'state', 'Halting')
+            elif event == 'domain-shutdown':
+                proxy = vm_proxy(vm.qid)
+                if property_get(proxy, 'state') == 'Starting':
+                    property_set(proxy, 'state', 'Failed')
+                else:
+                    property_set(proxy, 'state', 'Halted')
             else:
-                property_set(proxy, 'state', 'Halted')
-        else:
-            log.warn('Unknown %s from %s %s %s', event, vm, args, kwargs)
+                log.warn('Unknown %s from %s %s %s', event, vm, args, kwargs)
+        except Exception as e:
+            log.error(e)
 
     def forward_app_event(self, vm, event, *args, **kwargs):
-        if vm is not None:
-            return
-        proxy = app_proxy()
-        if is_garbage(event):
-            log.debug('Drop %s from %s', event, vm)
-            return
-        elif event.startswith('property-set:'):
-            property_set(proxy, args[0],
-                         qubesdbus.serialize.serialize_val(args[1]))
-            log.info('App: %s %s %s %s', vm, event, args, kwargs)
-        elif event == 'domain-delete':
-            func = proxy.get_dbus_method('RemoveDomain',
-                                         'org.qubes.DomainManager1')
-            vm = args[0]
-            vm_dbus_path = '/org/qubes/DomainManager1/domains/%s' % vm.qid
+        try:
+            if vm is not None:
+                return
+            proxy = app_proxy()
+            if is_garbage(event):
+                log.debug('Drop %s from %s', event, vm)
+                return
+            elif event.startswith('property-set:'):
+                property_set(proxy, args[0],
+                            qubesdbus.serialize.serialize_val(args[1]))
+                log.info('App: %s %s %s %s', vm, event, args, kwargs)
+            elif event == 'domain-delete':
+                func = proxy.get_dbus_method('RemoveDomain',
+                                            'org.qubes.DomainManager1')
+                vm = args[0]
+                vm_dbus_path = '/org/qubes/DomainManager1/domains/%s' % vm.qid
 
-            if not func(vm_dbus_path, False):
-                log.error('Could not add vm via to dbus DomainManager')
-            log.info("Removed VM %s", vm)
-        else:
-            log.warn('Unknown %s from %s %s %s', event, vm, args, kwargs)
+                if not func(vm_dbus_path, False):
+                    log.error('Could not add vm via to dbus DomainManager')
+                log.info("Removed VM %s", vm)
+            else:
+                log.warn('Unknown %s from %s %s %s', event, vm, args, kwargs)
+        except Exception as e:
+            log.error(e)
 
 
 def property_get(proxy: dbus.proxies.ProxyObject, name: str) -> Any:
