@@ -86,7 +86,7 @@ class QubesDbusProxy(object):
             return
         elif event.startswith('property-set:') and not self.new_vm:
             proxy = vm_proxy(vm.qid)
-            property_set(proxy, args[0], qubesdbus.serialize.serialize_val(args[1]))
+            property_set(proxy, kwargs['name'], qubesdbus.serialize.serialize_val(kwargs['newvalue']))
             log.info('VM: %s %s %s %s', vm, event, args, kwargs)
         elif event == 'domain-init' and vm.storage is None:
             # looks like a new vm is created
