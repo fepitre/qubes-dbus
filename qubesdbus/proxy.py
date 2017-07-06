@@ -44,17 +44,6 @@ INTERFACE_NAME = "%s.QubesSignals%s" % (NAME_PREFIX, VERSION)
 SESSION_BUS = dbus.SessionBus()
 MANAGER_NAME = "%s.DomainManager%s" % (NAME_PREFIX, VERSION)
 MANAGER_PATH = "%s/DomainManager%s" % (PATH_PREFIX, VERSION)
-GARBAGE = [
-    'domain-is-fully-usable',  # only important for internal core-admin?
-    'domain-add'
-]
-
-
-def is_garbage(event):
-    if event in ['domain-load', 'connection-established']:
-        return True
-    elif event.startswith('property-pre-set'):
-        return True
 
 
 class QubesDbusProxy(object):
@@ -136,16 +125,6 @@ def property_set(proxy: dbus.proxies.ProxyObject, name: str,
     func('', name, value)
 
 
-def serialize(args):
-    result = []
-    for val in args:
-        if isinstance(val, QubesVM):
-            result.append(val.qid)
-        else:
-            str(val)
-    return result
-
-
 def vm_proxy(qid):
     # type: (int) -> dbus.proxies.ProxyObject
     domain_path = '/'.join([MANAGER_PATH, 'domains', str(qid)])
@@ -177,6 +156,7 @@ def main():
     loop.stop()
     loop.run_forever()
     loop.close()
+
 
 if __name__ == '__main__':
     main()
