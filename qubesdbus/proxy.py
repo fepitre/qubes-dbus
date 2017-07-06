@@ -57,7 +57,7 @@ GARBAGE = [
 
 
 def is_garbage(event):
-    if event in ['domain-load']:
+    if event in ['domain-load', 'connection-established']:
         return True
     elif event.startswith('property-pre-set'):
         return True
