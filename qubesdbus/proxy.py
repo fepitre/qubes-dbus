@@ -17,29 +17,23 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 ''' Forwards qubes-core-admin events to D-Bus. '''
 
 from __future__ import absolute_import
 
 import asyncio
 import logging
+from typing import Any, Union
 
 import dbus
-from qubesadmin import Qubes
-from qubesadmin.events import EventsDispatcher
-from qubesadmin.vm import QubesVM
 from systemd.journal import JournalHandler
 
 import qubesdbus.serialize
+from qubesadmin import Qubes
+from qubesadmin.events import EventsDispatcher
+from qubesadmin.vm import QubesVM
 
 from .constants import NAME_PREFIX, PATH_PREFIX, VERSION
-
-try:
-    # Check for mypy dependencies pylint: disable=ungrouped-imports
-    from typing import Any, Optional, Union  # pylint: disable=unused-import
-except ImportError:
-    pass
 
 log = logging.getLogger('qubesdbus.proxy')
 log.addHandler(
