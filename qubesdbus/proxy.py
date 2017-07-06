@@ -137,13 +137,12 @@ class QubesDbusProxy(object):
                 log.info('App: %s %s %s %s', vm, event, args, kwargs)
             elif event == 'domain-delete':
                 func = proxy.get_dbus_method('RemoveDomain',
-                                            'org.qubes.DomainManager1')
-                vm = args[0]
-                vm_dbus_path = '/org/qubes/DomainManager1/domains/%s' % vm.qid
+                                             'org.qubes.DomainManager1')
+                vm_name = kwargs['vm']
 
-                if not func(vm_dbus_path, False):
-                    log.error('Could not add vm via to dbus DomainManager')
-                log.info("Removed VM %s", vm)
+                if not func(vm_name, False):
+                    log.error('Could not remove vm via to dbus DomainManager')
+                    log.info("Removed VM %s", vm_name)
             else:
                 log.warn('Unknown %s from %s %s %s', event, vm, args, kwargs)
         except Exception as e:

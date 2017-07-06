@@ -182,8 +182,8 @@ class DomainManager(PropertiesObject):
         self.log.debug("Emiting DomainRemoved signal: %s", object_path)
 
     @dbus.service.method(dbus_interface=INTERFACE,
-                         in_signature='ob', out_signature='b')
-    def RemoveDomain(self, vm_dbus_path, execute=False):
+                         in_signature='sb', out_signature='b')
+    def RemoveDomain(self, vm_name, execute=False):
          # type: (dbus.ObjectPath, bool) -> bool
         ''' Notify the `DomainManager` when a domain is removed. This is
             called by `QubesDbusProxy` when 'domain-deleted' event
@@ -191,12 +191,12 @@ class DomainManager(PropertiesObject):
             actual vm should set `execute` to True.
         '''
         if execute:
-            log.error('Creating domains via DBus is not implemented yet')
+            log.error('Removing domains via DBus is not implemented yet')
             return False
         for vm in self.managed_objects:
             # pylint: disable=protected-access
-            obj_path = vm._object_path
-            if obj_path == vm_dbus_path:
+            if vm.name == vm_name:
+                obj_path = vm._object_path
                 for signal_matcher in self.signal_matches[obj_path]:
                     self.bus.remove_signal_receiver(signal_matcher)
                 vm.remove_from_connection()
