@@ -4,6 +4,7 @@
 # The Qubes OS Project, https://www.qubes-os.org/
 #
 # Copyright (C) 2016 Bahtiar `kalkin-` Gadimov <bahtiar@gadimov.de>
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -19,19 +20,17 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ''' org.qubes.Labels1 service '''
 
+import asyncio
 import logging
 import sys
 
+import dbus
 from systemd.journal import JournalHandler
 
-import qubesadmin
+import qubesadmin.label
+import qubesdbus.models
 import qubesdbus.serialize
 from qubesdbus.service import ObjectManager
-from qubesdbus.models import Label
-
-import gi  # isort:skip
-gi.require_version('Gtk', '3.0')  # isort:skip
-from gi.repository import GLib  # isort:skip pylint:disable=wrong-import-position
 
 SERVICE_NAME = "org.qubes.Labels1"
 SERVICE_PATH = "/org/qubes/Labels1"
@@ -46,26 +45,32 @@ class Labels(ObjectManager):
 	acquiring all the labels.
     '''
 
-    def __init__(self, labels_data):
+    def __init__(self):
         super().__init__(SERVICE_NAME, SERVICE_PATH)
-        self.managed_objects = [self._new_label(d) for d in labels_data]
 
-    def _new_label(self, label_data):
-        return Label(self.bus_name, SERVICE_PATH, label_data)
+        self.managed_objects = []  # type: List[qubesdbus.models.Label]
+        self.managed_object = [self._new_label(l) for l in self.app.labels]
 
+    def _new_label(self,
+                   label: qubesadmin.label.Label) -> qubesdbus.models.Label:
+        data = {}  # type: Dict[str, Any]
+        for name in ["color", "icon", "index", "name"]:
+            value = getattr(label, name)
+            if name == "index":
+                data[name] = dbus.Int32(value)
+            else:
+                data[name] = dbus.String(value)
+        return qubesdbus.models.Label(self.bus_name, SERVICE_PATH, data)
 
 
 def main(args=None):
     ''' Main function '''  # pylint: disable=unused-argument
-    loop = GLib.MainLoop()
-    app = qubesadmin.Qubes()
-
-    labels_data = [qubesdbus.serialize.label_data(label)
-                   for label in app.labels]
-    _ = Labels(labels_data)
-    print("Service running...")
-    loop.run()
-    print("Service stopped")
+    manager = Labels()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(manager.run())
+    loop.stop()
+    loop.run_forever()
+    loop.close()
     return 0
 
 
