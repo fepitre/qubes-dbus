@@ -20,20 +20,23 @@
 # pylint: disable=invalid-name
 ''' Service classes '''
 
-from __future__ import absolute_import
-from typing import Any
-
+import asyncio
 import logging
+from typing import Any
 
 import dbus
 import dbus.mainloop.glib
 import dbus.service
-
+from dbus.service import BusName
 from systemd.journal import JournalHandler
 
+import gbulb
+from qubesadmin import Qubes
+from qubesadmin.events import EventsDispatcher
+
+gbulb.install()
 dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
-from dbus.service import BusName
 
 
 class DbusServiceObject(dbus.service.Object):
@@ -41,8 +44,13 @@ class DbusServiceObject(dbus.service.Object):
     '''
 
     def __init__(self, bus_name: BusName, obj_path: str) -> None:
+        self.app = Qubes()
+        self.events_dispatcher = EventsDispatcher(self.app)
         super().__init__(bus_name=bus_name, object_path=obj_path)
 
+    @asyncio.coroutine
+    def run(self):
+        yield from self.events_dispatcher.listen_for_events()
 
 class ObjectManager(DbusServiceObject):
     ''' Provides a class implementing the `org.freedesktop.DBus.ObjectManager`
