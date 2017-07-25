@@ -88,14 +88,6 @@ def domain_data(vm: QubesVM) -> Dict[dbus.String, Any]:
     return result
 
 
-def devices_data(app):
-    result = []
-    for vm in app.domains:
-        for dev_class, dev_collection in vm.devices.items():
-            result += serialize_val(dev_collection)
-    return result
-
-
 def label_data(lab: Label) -> Dict[dbus.String, Any]:
     ''' Serialize a `qubes.Label` to a dictionary '''
     result = {}
@@ -141,11 +133,13 @@ def device_collection_data(collection: DeviceCollection) -> dbus.Array:
     return [device_data(dev) for dev in collection.available()]
 
 
-def device_data(dev):
-    return {
+def device_data(dev: qubesadmin.devices.DeviceInfo):
+    data = {
         serialize_val(prop): serialize_val(getattr(dev, prop))
         for prop in dir(dev) if not prop.startswith('_')
     }
+
+    return data
 
 
 def label_path(label: Label) -> dbus.ObjectPath:

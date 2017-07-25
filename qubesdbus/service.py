@@ -46,6 +46,7 @@ class DbusServiceObject(dbus.service.Object):
         self.app = Qubes()
         self.events_dispatcher = EventsDispatcher(self.app)
         super().__init__(bus_name=bus_name, object_path=obj_path)
+        self.bus = bus_name.get_bus()
 
     @asyncio.coroutine
     def run(self):
