@@ -1,8 +1,0 @@
-[Desktop Entry]
-Icon=qubes
-Name=Qubes D-Bus Proxy
-Categories=System
-Exec=python3 -mqubesdbus.proxy
-Terminal=false
-NoDisplay=true
-Type=Application
