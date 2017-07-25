@@ -38,7 +38,6 @@ gbulb.install()
 dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
 
-
 class DbusServiceObject(dbus.service.Object):
     ''' A class implementing a useful shortcut for writing own D-Bus Services
     '''
@@ -51,6 +50,7 @@ class DbusServiceObject(dbus.service.Object):
     @asyncio.coroutine
     def run(self):
         yield from self.events_dispatcher.listen_for_events()
+
 
 class ObjectManager(DbusServiceObject):
     ''' Provides a class implementing the `org.freedesktop.DBus.ObjectManager`
@@ -72,8 +72,10 @@ class ObjectManager(DbusServiceObject):
         ''' Returns the domain objects paths and their supported interfaces and
             properties.
         '''  # pylint: disable=protected-access
-        return {o._object_path: o.properties_iface()
-                for o in self.managed_objects}
+        return {
+            o._object_path: o.properties_iface()
+            for o in self.managed_objects
+        }
 
 
 class PropertiesObject(DbusServiceObject):
@@ -96,7 +98,7 @@ class PropertiesObject(DbusServiceObject):
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
     def Get(self, interface, property_name):
         ''' Returns the property value.
-        ''' # pylint: disable=unused-argument
+        '''  # pylint: disable=unused-argument
         return self.properties[property_name]
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties",
@@ -108,7 +110,7 @@ class PropertiesObject(DbusServiceObject):
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
     def Set(self, interface: str, name: str, value: Any) -> None:
         ''' Set a property value.
-        ''' # pylint: disable=unused-argument
+        '''  # pylint: disable=unused-argument
         new_value = value
         old_value = self.properties[name]
         if new_value == old_value:
@@ -124,7 +126,7 @@ class PropertiesObject(DbusServiceObject):
     def PropertiesChanged(self, interface, changed_properties,
                           invalidated=None):
         ''' This signal is emitted when a property changes.
-        ''' # pylint: disable=unused-argument
+        '''  # pylint: disable=unused-argument
         # type: (str, Dict[dbus.String, Any], List[dbus.String]) -> None
         for name, value in changed_properties.items():
             self.log.debug('%s: Property %s changed %s', self.id, name, value)
