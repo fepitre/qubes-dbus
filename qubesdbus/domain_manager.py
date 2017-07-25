@@ -19,9 +19,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ''' org.qubes.DomainManager1 Service '''
 
+import asyncio
 import logging
 import sys
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union  # pylint: disable=unused-import
 
 import dbus
 import dbus.service
@@ -31,10 +32,6 @@ import qubesadmin
 import qubesdbus.serialize
 from qubesdbus.models import Domain
 from qubesdbus.service import PropertiesObject
-
-import gi  # isort:skip
-gi.require_version('Gtk', '3.0')  # isort:skip
-from gi.repository import GLib  # isort:skip pylint:disable=wrong-import-position
 
 log = logging.getLogger('qubesdbus.DomainManager1')
 log.addHandler(JournalHandler(level=logging.DEBUG, SYSLOG_IDENTIFIER='qubesdbus.domain_manager'))
@@ -59,7 +56,9 @@ class DomainManager(PropertiesObject):
                properties
     '''
 
-    def __init__(self, qubes_data: DBusProperties, domains: List[DBusProperties]) -> None:
+    def __init__(self) -> None:
+        self.app = qubesadmin.Qubes()
+        qubes_data = qubesdbus.serialize.qubes_data(self.app)  # type: DBusProperties
         bus = dbus.SessionBus()
         bus_name = dbus.service.BusName(SERVICE_NAME, bus=bus,
                                         allow_replacement=True,
@@ -67,7 +66,7 @@ class DomainManager(PropertiesObject):
         super().__init__(bus_name, SERVICE_PATH, INTERFACE, qubes_data)
         self.bus_name = bus_name
         self.bus = bus
-        self.managed_objects = [self._proxify_domain(vm) for vm in domains]
+        self.signal_matches = {}  # type: Dict[str, List[DBusSignalMatch]]
         self.state_signals = {
             'Starting': self.Starting,
             'Started': self.Started,
@@ -76,29 +75,86 @@ class DomainManager(PropertiesObject):
             'Halted': self.Halted,
             'Unknown': lambda _, __: None,
         }
-        self.signal_matches = {
-        }  # type: Dict[str, List[DBusSignalMatch]]
 
-        for domain in self.managed_objects:
-            obj_path = domain._object_path  # pylint: disable=protected-access
-            self._setup_signals(obj_path)
-
-    @dbus.service.method(dbus_interface="org.freedesktop.DBus.ObjectManager",
-                         out_signature="a{oa{sa{sv}}}")
-    def GetManagedObjects(self):
-        ''' Returns the domain objects paths and their supported interfaces and
-            properties.
-        '''  # pylint: disable=protected-access
-        return {
-            o._object_path: o.properties_iface()
-            for o in self.managed_objects
+        self.domains = {
+            vm.name: self._proxify_domain(vm)
+            for vm in self.app.domains
         }
+        self.events_dispatcher.add_handler('domain-add', self._domain_add)
+        self.events_dispatcher.add_handler('domain-delete',
+                                           self._domain_delete)
+        self.events_dispatcher.add_handler('domain-spawn', self._domain_spawn)
+        self.events_dispatcher.add_handler('domain-start', self._domain_start)
+        self.events_dispatcher.add_handler('domain-pre-shutdown',
+                                           self._domain_pre_shutdown)
+        self.events_dispatcher.add_handler('domain-shutdown',
+                                            self._domain_shutdown)
 
-    def _setup_signals(self, obj_path: str):
-        def emit_state_signal(dbus_interface,
-                              changed_properties: DBusProperties,
-                              invalidated: dbus.Array=None  # pylint: disable=unused-argument
-                             ) -> None:
+
+    def _domain_add(self, _, __, **kwargs):
+        vm_name = kwargs['vm']
+        vm = self.app.domains[vm_name]
+        log.info('Added domain %s', vm['name'])
+        vm_proxy = self._proxify_domain(vm)
+        obj_path = vm_proxy._object_path # pylint: disable=protected-access
+        self.domains[vm_name] = vm_proxy
+        self.DomainAdded(INTERFACE, obj_path)
+        return True
+
+    def _domain_delete(self, _, __, **kwargs):
+        vm_name = kwargs['vm']
+        try:
+            vm_proxy = self.domains[vm_name]
+            obj_path = vm_proxy._object_path # pylint: disable=protected-access
+            for signal_matcher in self.signal_matches[obj_path]:
+                self.bus.remove_signal_receiver(signal_matcher)
+            vm_proxy.remove_from_connection()
+            del(self.domains[vm_name])
+            self.DomainRemoved(INTERFACE, obj_path)
+            return True
+        except KeyError:
+            return False
+
+    def _domain_spawn(self, vm, _, **__):
+        try:
+            vm_proxy = self.domains[vm.name]
+        except KeyError:  # just to be sure
+            vm_proxy = self._proxify_domain(vm)
+            self.domains[vm.name] = vm_proxy
+        vm_proxy.Set("org.freedesktop.DBus.Properties", 'state', 'Starting')
+
+    def _domain_start(self, vm, _, **__):
+        try:
+            vm_proxy = self.domains[vm.name]
+        except KeyError:  # just to be sure
+            vm_proxy = self._proxify_domain(vm)
+            self.domains[vm.name] = vm_proxy
+        vm_proxy.Set("org.freedesktop.DBus.Properties", 'state', 'Started')
+
+    def _domain_pre_shutdown(self, vm, _, **__):
+        try:
+            vm_proxy = self.domains[vm.name]
+        except KeyError:  # just to be sure
+            vm_proxy = self._proxify_domain(vm)
+            self.domains[vm.name] = vm_proxy
+        vm_proxy.Set("org.freedesktop.DBus.Properties", 'state', 'Halting')
+
+    def _domain_shutdown(self, vm, _, **__):
+        try:
+            vm_proxy = self.domains[vm.name]
+        except KeyError:  # just to be sure
+            vm_proxy = self._proxify_domain(vm)
+            self.domains[vm.name] = vm_proxy
+        vm_proxy.Set("org.freedesktop.DBus.Properties", 'state', 'Halted')
+
+
+    def _setup_state_signals(self, vm_proxy: Domain):
+        obj_path = vm_proxy._object_path  # pylint: disable=protected-access
+        def emit_state_signal(
+                dbus_interface,
+                changed_properties: DBusProperties,
+                invalidated: dbus.Array=None  # pylint: disable=unused-argument
+        ) -> None:
             ''' Emit state signal when domain state property is changed. '''
             assert dbus_interface == 'org.freedesktop.DBus.Properties'
             if 'state' in changed_properties:
@@ -108,8 +164,7 @@ class DomainManager(PropertiesObject):
                 signal_func(INTERFACE, obj_path)
 
         signal_match = self.bus.add_signal_receiver(
-            emit_state_signal,
-            signal_name="PropertiesChanged",
+            emit_state_signal, signal_name="PropertiesChanged",
             dbus_interface='org.freedesktop.DBus.Properties',
             path=obj_path)  # type: DBusSignalMatch
 
@@ -118,58 +173,42 @@ class DomainManager(PropertiesObject):
 
         self.signal_matches[obj_path] += [signal_match]
 
+    @dbus.service.method(dbus_interface="org.freedesktop.DBus.ObjectManager",
+                         out_signature="a{oa{sa{sv}}}")
+    def GetManagedObjects(self):
+        ''' Returns the domain objects paths and their supported interfaces and
+            properties.
+        '''  # pylint: disable=protected-access
+        return {
+            o._object_path: o.properties_iface()
+            for o in self.domains.values()
+        }
+
     @dbus.service.signal(INTERFACE, signature="so")
     def Started(self, interface, obj_path):
         # type: (DBusString, dbus.ObjectPath) -> None
         """ Signal emited when the domain is started and running"""
-        pass
 
     @dbus.service.signal(INTERFACE, signature="so")
     def Starting(self, interface, obj_path):
         # type: (DBusString, dbus.ObjectPath) -> None
         """ Signal emited when the domain is starting """
-        pass
 
     @dbus.service.signal(INTERFACE, signature="so")
     def Failed(self, interface, obj_path):
         # type: (DBusString, dbus.ObjectPath) -> None
         """ Signal emited when during the start up of the domain something went
         wrong and the domain was halted"""
-        pass
 
     @dbus.service.signal(INTERFACE, signature="so")
     def Halting(self, interface, obj_path):
         # type: (DBusString, dbus.ObjectPath) -> None
         """ Signal emited when the domain is shutting down"""
-        pass
 
     @dbus.service.signal(INTERFACE, signature="so")
     def Halted(self, interface, obj_path):
         # type: (DBusString, dbus.ObjectPath) -> None
         """ Signal emited when the domain is halted"""
-        pass
-
-    @dbus.service.method(dbus_interface=INTERFACE, in_signature='a{sv}b')
-    def AddDomain(self, vm, execute = False):
-        # type: (DBusProperties, bool) -> bool
-        ''' Notify the `DomainManager` when a domain is added. This is
-            called by `QubesDbusProxy` when 'domain-create-on-disk' event
-            arrives from `core-admin`. UI programs which need to create an
-            actual vm should set `execute` to True.
-        '''
-        if execute:
-            log.error('Creating domains via DBus is not implemented yet')
-            return False
-
-        vm['qid'] = len(self.managed_objects)
-        domain = self._proxify_domain(vm)
-        self.managed_objects.append(domain)
-        log.info('Added domain %s', vm['name'])
-        # pylint: disable=protected-access
-        obj_path = domain._object_path
-        self._setup_signals(obj_path)
-        self.DomainAdded(INTERFACE, obj_path)
-        return True
 
     @dbus.service.signal(INTERFACE, signature="so")
     def DomainAdded(self, _, object_path):
@@ -181,45 +220,22 @@ class DomainManager(PropertiesObject):
         ''' This signal is emitted when a new domain is removed '''
         self.log.debug("Emiting DomainRemoved signal: %s", object_path)
 
-    @dbus.service.method(dbus_interface=INTERFACE,
-                         in_signature='sb', out_signature='b')
-    def RemoveDomain(self, vm_name, execute=False):
-         # type: (dbus.ObjectPath, bool) -> bool
-        ''' Notify the `DomainManager` when a domain is removed. This is
-            called by `QubesDbusProxy` when 'domain-deleted' event
-            arrives from `core-admin`. UI programs which need to remove an
-            actual vm should set `execute` to True.
-        '''
-        if execute:
-            log.error('Removing domains via DBus is not implemented yet')
-            return False
-        for vm in self.managed_objects:
-            # pylint: disable=protected-access
-            if vm.name == vm_name:
-                obj_path = vm._object_path
-                for signal_matcher in self.signal_matches[obj_path]:
-                    self.bus.remove_signal_receiver(signal_matcher)
-                vm.remove_from_connection()
-                self.managed_objects.remove(vm)
-                self.DomainRemoved(INTERFACE, vm._object_path)
-                return True
-        return False
-
     def _proxify_domain(self, vm):
         # type: (Dict[Union[str,DBusString], Any]) -> Domain
-        return Domain(self.bus_name, SERVICE_PATH, vm)
+        proxy = Domain(self.bus_name, SERVICE_PATH,
+                      qubesdbus.serialize.domain_data(vm))
+        self._setup_state_signals(proxy)
+        return proxy
 
 
 def main(args=None):  # pylint: disable=unused-argument
     ''' Main function starting the DomainManager1 service. '''
-    loop = GLib.MainLoop()
-    app = qubesadmin.Qubes()
-    qubes_data = qubesdbus.serialize.qubes_data(app)
-    domains = [qubesdbus.serialize.domain_data(vm) for vm in app.domains]
-    _ = DomainManager(qubes_data, domains)
-    print("Service running...")
-    loop.run()
-    print("Service stopped")
+    loop = asyncio.get_event_loop()
+    manager = DomainManager()
+    loop.run_until_complete(manager.run())
+    loop.stop()
+    loop.run_forever()
+    loop.close()
     return 0
 
 
