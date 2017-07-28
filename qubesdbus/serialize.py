@@ -85,6 +85,10 @@ def domain_data(vm: QubesVM) -> Dict[dbus.String, Any]:
         result['networked'] = False
     else:
         result['networked'] = serialize_val(vm.is_networked())
+
+    result['memory_usage'] = 0
+    result['cpu_time'] = 0
+    result['cpu_usage'] = 0
     return result
 
 

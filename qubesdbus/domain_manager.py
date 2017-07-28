@@ -32,6 +32,7 @@ import qubesadmin
 import qubesdbus.serialize
 from qubesdbus.models import Domain
 from qubesdbus.service import PropertiesObject
+from qubesadmin.events import EventsDispatcher
 
 log = logging.getLogger('qubesdbus.DomainManager1')
 log.addHandler(JournalHandler(level=logging.DEBUG, SYSLOG_IDENTIFIER='qubesdbus.domain_manager'))
@@ -88,8 +89,9 @@ class DomainManager(PropertiesObject):
         self.events_dispatcher.add_handler('domain-pre-shutdown',
                                            self._domain_pre_shutdown)
         self.events_dispatcher.add_handler('domain-shutdown',
-                                            self._domain_shutdown)
-
+                                           self._domain_shutdown)
+        self.stats_dispatcher = EventsDispatcher(self.app, api_method='admin.vm.Stats')
+        self.stats_dispatcher.add_handler('vm-stats', self._update_stats)
 
     def _domain_add(self, _, __, **kwargs):
         vm_name = kwargs['vm']
@@ -109,7 +111,7 @@ class DomainManager(PropertiesObject):
             for signal_matcher in self.signal_matches[obj_path]:
                 self.bus.remove_signal_receiver(signal_matcher)
             vm_proxy.remove_from_connection()
-            del(self.domains[vm_name])
+            del self.domains[vm_name]
             self.DomainRemoved(INTERFACE, obj_path)
             return True
         except KeyError:
@@ -147,7 +149,6 @@ class DomainManager(PropertiesObject):
             self.domains[vm.name] = vm_proxy
         vm_proxy.Set("org.freedesktop.DBus.Properties", 'state', 'Halted')
 
-
     def _setup_state_signals(self, vm_proxy: Domain):
         obj_path = vm_proxy._object_path  # pylint: disable=protected-access
         def emit_state_signal(
@@ -172,6 +173,28 @@ class DomainManager(PropertiesObject):
             self.signal_matches[obj_path] = list()
 
         self.signal_matches[obj_path] += [signal_match]
+
+    def _update_stats(self, vm, _, **kwargs):
+        try:
+            vm_proxy = self.domains[vm.name]
+        except KeyError:  # just to be sure
+            vm_proxy = self._proxify_domain(vm)
+            self.domains[vm.name] = vm_proxy
+
+        changed_properties = {}
+        for key, value in kwargs.items():
+            if key == 'memory_kb':
+                key = 'memory_usage'
+                value = int(value)
+            if vm_proxy.properties[key] != value:
+                vm_proxy.properties[key] = value
+                changed_properties[key] = value
+
+        vm_proxy.PropertiesChanged(Domain.INTERFACE, changed_properties, invalidated=[])
+
+    @asyncio.coroutine
+    def run_vm_stats(self):
+        yield from self.stats_dispatcher.listen_for_events()
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.ObjectManager",
                          out_signature="a{oa{sa{sv}}}")
@@ -232,9 +255,11 @@ def main(args=None):  # pylint: disable=unused-argument
     ''' Main function starting the DomainManager1 service. '''
     loop = asyncio.get_event_loop()
     manager = DomainManager()
-    loop.run_until_complete(manager.run())
-    loop.stop()
-    loop.run_forever()
+    tasks = [
+        asyncio.ensure_future(manager.run()),
+        asyncio.ensure_future(manager.run_vm_stats())
+    ]
+    loop.run_until_complete(asyncio.wait(tasks))
     loop.close()
     return 0
 
