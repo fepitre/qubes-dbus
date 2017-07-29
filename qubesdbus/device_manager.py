@@ -56,7 +56,7 @@ class DeviceManager(qubesdbus.service.ObjectManager):
 
         for vm in self.app.domains:
             for dev_class in DEV_TYPES:
-                for assignment in vm.devices[dev_class].assignments():
+                for assignment in vm.devices[dev_class].attached():
                     try:
                         obj_path, frontend_vm_path = self._frontend_domain(
                             vm, assignment, dev_class)
