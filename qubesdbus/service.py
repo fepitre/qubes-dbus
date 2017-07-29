@@ -43,7 +43,8 @@ class DbusServiceObject(dbus.service.Object):
     '''
 
     def __init__(self, bus_name: BusName, obj_path: str) -> None:
-        self.app = Qubes()
+        if not hasattr(self, 'app'):
+            self.app = Qubes()
         self.events_dispatcher = EventsDispatcher(self.app)
         super().__init__(bus_name=bus_name, object_path=obj_path)
         self.bus = bus_name.get_bus()
