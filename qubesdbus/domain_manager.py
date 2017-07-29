@@ -259,7 +259,11 @@ def main(args=None):  # pylint: disable=unused-argument
         asyncio.ensure_future(manager.run()),
         asyncio.ensure_future(manager.run_vm_stats())
     ]
-    loop.run_until_complete(asyncio.wait(tasks))
+    done, _ = loop.run_until_complete(asyncio.wait(tasks),
+        return_when=asyncio.FIRST_EXCEPTION)
+    for task in done:
+        # raise an exception, if any
+        task.result()
     loop.close()
     return 0
 
