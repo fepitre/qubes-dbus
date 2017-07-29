@@ -157,7 +157,7 @@ class DomainManager(PropertiesObject):
                 invalidated: dbus.Array=None  # pylint: disable=unused-argument
         ) -> None:
             ''' Emit state signal when domain state property is changed. '''
-            assert dbus_interface == 'org.freedesktop.DBus.Properties'
+            #assert dbus_interface == 'org.freedesktop.DBus.Properties'
             if 'state' in changed_properties:
                 state = changed_properties['state']
                 assert state in self.state_signals
@@ -190,7 +190,7 @@ class DomainManager(PropertiesObject):
                 vm_proxy.properties[key] = value
                 changed_properties[key] = value
 
-        vm_proxy.PropertiesChanged(Domain.INTERFACE, changed_properties, invalidated=[])
+        vm_proxy.PropertiesChanged(Domain.INTERFACE, changed_properties, [])
 
     @asyncio.coroutine
     def run_vm_stats(self):
