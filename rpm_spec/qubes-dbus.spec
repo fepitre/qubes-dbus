@@ -32,6 +32,7 @@ License:    GPL2+
 URL:		http://www.qubes-os.org
 
 Requires: python3-dbus
+Requires: python3-gbulb
 Requires: python3-systemd
 
 %define _builddir %(pwd)
