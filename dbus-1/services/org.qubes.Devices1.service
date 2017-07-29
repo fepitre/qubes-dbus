@@ -1,0 +1,5 @@
+[D-BUS Service]
+Name=org.qubes.Devices1
+Exec=/usr/bin/python3 -m qubesdbus.device_manager
+Restart=on-failure
+

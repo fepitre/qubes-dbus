@@ -20,20 +20,22 @@
 # pylint: disable=invalid-name
 ''' Service classes '''
 
-from __future__ import absolute_import
-from typing import Any
-
+import asyncio
 import logging
+from typing import Any
 
 import dbus
 import dbus.mainloop.glib
 import dbus.service
-
+from dbus.service import BusName
 from systemd.journal import JournalHandler
 
-dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+import gbulb
+from qubesadmin import Qubes
+from qubesadmin.events import EventsDispatcher
 
-from dbus.service import BusName
+gbulb.install()
+dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
 
 class DbusServiceObject(dbus.service.Object):
@@ -41,7 +43,15 @@ class DbusServiceObject(dbus.service.Object):
     '''
 
     def __init__(self, bus_name: BusName, obj_path: str) -> None:
+        if not hasattr(self, 'app'):
+            self.app = Qubes()
+        self.events_dispatcher = EventsDispatcher(self.app)
         super().__init__(bus_name=bus_name, object_path=obj_path)
+        self.bus = bus_name.get_bus()
+
+    @asyncio.coroutine
+    def run(self):
+        yield from self.events_dispatcher.listen_for_events()
 
 
 class ObjectManager(DbusServiceObject):
@@ -64,8 +74,10 @@ class ObjectManager(DbusServiceObject):
         ''' Returns the domain objects paths and their supported interfaces and
             properties.
         '''  # pylint: disable=protected-access
-        return {o._object_path: o.properties_iface()
-                for o in self.managed_objects}
+        return {
+            o._object_path: o.properties_iface()
+            for o in self.managed_objects
+        }
 
 
 class PropertiesObject(DbusServiceObject):
@@ -88,7 +100,7 @@ class PropertiesObject(DbusServiceObject):
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
     def Get(self, interface, property_name):
         ''' Returns the property value.
-        ''' # pylint: disable=unused-argument
+        '''  # pylint: disable=unused-argument
         return self.properties[property_name]
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties",
@@ -100,7 +112,7 @@ class PropertiesObject(DbusServiceObject):
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties")
     def Set(self, interface: str, name: str, value: Any) -> None:
         ''' Set a property value.
-        ''' # pylint: disable=unused-argument
+        '''  # pylint: disable=unused-argument
         new_value = value
         old_value = self.properties[name]
         if new_value == old_value:
@@ -116,7 +128,7 @@ class PropertiesObject(DbusServiceObject):
     def PropertiesChanged(self, interface, changed_properties,
                           invalidated=None):
         ''' This signal is emitted when a property changes.
-        ''' # pylint: disable=unused-argument
+        '''  # pylint: disable=unused-argument
         # type: (str, Dict[dbus.String, Any], List[dbus.String]) -> None
         for name, value in changed_properties.items():
             self.log.debug('%s: Property %s changed %s', self.id, name, value)
