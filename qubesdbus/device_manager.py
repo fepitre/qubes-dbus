@@ -21,6 +21,7 @@
 import asyncio
 import logging
 import os
+import re
 import sys
 
 import dbus.service
@@ -234,7 +235,7 @@ class Device(qubesdbus.service.PropertiesObject):
 
 
 def device_path(vm, dev_class, ident):
-    _id = ident.replace('.', '_')
+    _id = re.sub(r"[^A-Za-z0-9_/]", "_", ident)
     return os.path.join(SERVICE_PATH, dev_class, str(vm.qid), _id)
 
 
