@@ -96,7 +96,7 @@ class DomainManager(PropertiesObject):
     def _domain_add(self, _, __, **kwargs):
         vm_name = kwargs['vm']
         vm = self.app.domains[vm_name]
-        log.info('Added domain %s', vm['name'])
+        log.info('Added domain %s', vm_name)
         vm_proxy = self._proxify_domain(vm)
         obj_path = vm_proxy._object_path # pylint: disable=protected-access
         self.domains[vm_name] = vm_proxy
