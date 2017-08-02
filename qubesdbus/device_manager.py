@@ -180,7 +180,11 @@ class DeviceManager(qubesdbus.service.ObjectManager):
         dev_class = event.split(':', 1)[1]
         device = self._find_device(dev_class, dev_str)
         del device.properties['frontend_domain']
-        del device.properties['attach_options']
+        try:
+            del device.properties['attach_options']
+        except KeyError:
+            pass
+
         changed_properties = {}
         invalidated_properties = ['frontend_domain', 'attach_options']
         device.PropertiesChanged(DEV_IFACE, changed_properties,

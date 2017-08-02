@@ -101,7 +101,12 @@ class PropertiesObject(DbusServiceObject):
     def Get(self, interface, property_name):
         ''' Returns the property value.
         '''  # pylint: disable=unused-argument
-        return self.properties[property_name]
+        try:
+            return self.properties[property_name]
+        except KeyError:
+            raise dbus.DBusException(
+                "Property %s does not exist" % property_name,
+                name="MissingProperty")
 
     @dbus.service.method(dbus_interface="org.freedesktop.DBus.Properties",
                          in_signature='s', out_signature='a{sv}')
@@ -114,14 +119,18 @@ class PropertiesObject(DbusServiceObject):
         ''' Set a property value.
         '''  # pylint: disable=unused-argument
         new_value = value
-        old_value = self.properties[name]
-        if new_value == old_value:
-            self.log.info('%s: Property %s not changed (%s)', self.id, name,
-                          old_value)
-        else:
-            self.properties[name] = value
-            self.PropertiesChanged("org.freedesktop.DBus.Properties",
-                                   {name: value}, [])
+        try:
+            old_value = self.properties[name]
+            if new_value == old_value:
+                self.log.info('%s: Property %s not changed (%s)', self.id,
+                              name, old_value)
+                return
+        except KeyError:
+            pass
+
+        self.properties[name] = value
+        self.PropertiesChanged(self.iface,
+                               {name: value}, [])
 
     @dbus.service.signal(dbus_interface='org.freedesktop.DBus.Properties',
                          signature="sa{sv}as")
