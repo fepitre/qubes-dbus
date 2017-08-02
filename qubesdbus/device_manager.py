@@ -102,14 +102,14 @@ class DeviceManager(qubesdbus.service.ObjectManager):
             p for p in self.devices if p.startswith(vm_path_prefix)
         ]
 
-        # remove non existent devices
+        # remove non existing own devices
         for obj_path in known_devices:
             if obj_path not in paths:
                 self.Removed(obj_path)
                 self.devices[obj_path].remove_from_connection()
                 del self.devices[obj_path]
 
-        # add & update all other devices
+        # add & update all own existing devices
         for dev_info in vm.devices[dev_class].available():
             obj_path = device_path(vm, dev_class, dev_info.ident)
             try:  # update an existing device
@@ -121,22 +121,6 @@ class DeviceManager(qubesdbus.service.ObjectManager):
                 obj_path, device = self._device(vm, dev_class, dev_info)
                 self.devices[obj_path] = device
                 self.Added(obj_path)
-
-        # figure out frontend_domains
-        for domains in self.app.domains:
-            for assignment in domains.devices[dev_class].assignments():
-                if assignment.backend_domain != vm:
-                    continue
-                try:
-                    obj_path, frontend_vm_path = self._frontend_domain(
-                        vm, assignment, dev_class)
-                    self.devices[obj_path].Set(
-                        None, 'frontend_domain',
-                        dbus.ObjectPath(frontend_vm_path))
-                    self.devices[obj_path].properties[
-                        'attach_options'] = assignment.options
-                except TypeError:
-                    continue
 
     def _device(self, vm, dev_class, dev_info):
         data = qubesdbus.serialize.device_data(dev_info)
