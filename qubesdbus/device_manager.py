@@ -137,7 +137,7 @@ class DeviceManager(qubesdbus.service.ObjectManager):
 
         qid = str(vm.qid)
         vm_obj_path = dbus.ObjectPath(
-            os.path.join('/org/qubes/DeviceManager1/domains', qid))
+            os.path.join('/org/qubes/DomainManager1/domains', qid))
         dev_class = event.split(':', 1)[1]
         device = self._find_device(dev_class, dev_str)
 
@@ -162,7 +162,7 @@ class DeviceManager(qubesdbus.service.ObjectManager):
 
         qid = str(vm.qid)
         vm_obj_path = dbus.ObjectPath(
-            os.path.join('/org/qubes/DeviceManager1/domains', qid))
+            os.path.join('/org/qubes/DomainManager1/domains', qid))
         dev_class = event.split(':', 1)[1]
         device = self._find_device(dev_class, dev_str)
         del device.properties['frontend_domain']
