@@ -136,12 +136,13 @@ class DeviceManager(qubesdbus.service.ObjectManager):
         device = None
 
         qid = str(vm.qid)
-        vm_obj_path = os.path.join('/org/qubes/DeviceManager1/domains', qid)
+        vm_obj_path = dbus.ObjectPath(
+            os.path.join('/org/qubes/DeviceManager1/domains', qid))
         dev_class = event.split(':', 1)[1]
         device = self._find_device(dev_class, dev_str)
 
         changed_properties = []
-        device.properties['frontend_domain'] = vm_obj_path
+        device.properties['frontend_domain'] = dbus.ObjectPath(vm_obj_path)
         device.properties['attach_options'] = options
         changed_properties = {
             'frontend_domain': vm_obj_path,
@@ -160,7 +161,8 @@ class DeviceManager(qubesdbus.service.ObjectManager):
         device = None
 
         qid = str(vm.qid)
-        vm_obj_path = os.path.join('/org/qubes/DeviceManager1/domains', qid)
+        vm_obj_path = dbus.ObjectPath(
+            os.path.join('/org/qubes/DeviceManager1/domains', qid))
         dev_class = event.split(':', 1)[1]
         device = self._find_device(dev_class, dev_str)
         del device.properties['frontend_domain']
