@@ -38,7 +38,7 @@ log.propagate = True
 
 SERVICE_NAME = "org.qubes.Devices1"
 SERVICE_PATH = "/org/qubes/Devices1"
-DEV_TYPES = ['block', 'pci', 'usb']  # Add 'mic' when it's implemented
+DEV_TYPES = ['block', 'pci', 'usb', 'mic']
 DEV_IFACE = 'org.qubes.Device'
 
 DBusSignalMatch = dbus.connection.SignalMatch
