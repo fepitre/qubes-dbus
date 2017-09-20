@@ -109,7 +109,7 @@ class DomainManager(PropertiesObject):
             vm_proxy = self.domains[vm_name]
             obj_path = vm_proxy._object_path # pylint: disable=protected-access
             for signal_matcher in self.signal_matches[obj_path]:
-                self.bus.remove_signal_receiver(signal_matcher)
+                signal_matcher.remove()
             vm_proxy.remove_from_connection()
             del self.domains[vm_name]
             self.DomainRemoved(INTERFACE, obj_path)
