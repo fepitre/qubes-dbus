@@ -49,7 +49,7 @@ class Labels(ObjectManager):
         super().__init__(SERVICE_NAME, SERVICE_PATH)
 
         self.managed_objects = []  # type: List[qubesdbus.models.Label]
-        for l in self.app.labels:
+        for l in self.app.labels.values():
             label = self._new_label(l)
             self.managed_objects.append(label)
 
