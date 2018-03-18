@@ -19,9 +19,8 @@
 #
 #
 
-%{!?version: %define version %(cat version)}
 Name: qubes-dbus
-Version:    %{version}
+Version:    @VERSION@
 Release:    1%{?dist}
 BuildArch:  noarch
 Summary:    foo bar
@@ -35,12 +34,11 @@ Requires: python3-dbus
 Requires: python3-gbulb
 Requires: python3-systemd
 
-%define _builddir %(pwd)
 
 %prep
-rm -f %{name}-%{version}
-ln -sf . %{name}-%{version}
-%setup -T -D
+%setup -q
+
+Source0: %{name}-%{version}.tar.gz
 
 %description
 foo bar
