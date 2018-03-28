@@ -26,6 +26,7 @@ Contains the folowing interface implementations:
 '''
 
 import os.path
+import subprocess
 from typing import Any, Dict, Union
 
 import dbus
@@ -88,6 +89,17 @@ class Domain(qubesdbus.service.PropertiesObject):
         name = str(self.name)
         vm = app.domains[name]
         vm.start()
+        return True
+
+    @dbus.service.method("org.qubes.Domain", in_signature="s", 
+        out_signature="b")
+    def RunService(self, service):
+        app = qubesadmin.Qubes()
+        name = str(self.name)
+        vm = app.domains[name]
+        vm.run_service(service, stdin=subprocess.DEVNULL,
+                       stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL)
         return True
 
 
