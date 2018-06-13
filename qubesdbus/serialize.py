@@ -116,7 +116,7 @@ def serialize_val(value):
     elif isinstance(value, bool):
         return dbus.Boolean(value)
     elif isinstance(value, int):
-        return dbus.Int32(value)
+        return dbus.Int64(value)
     elif callable(value):
         return serialize_val(value())
     elif isinstance(value, qubesadmin.label.Label):
