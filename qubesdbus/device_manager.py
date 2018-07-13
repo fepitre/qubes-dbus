@@ -99,7 +99,7 @@ class DeviceManager(qubesdbus.service.ObjectManager):
 
         vm_path_prefix = os.path.join(SERVICE_PATH, dev_class, str(vm.qid))
         known_devices = [
-            p for p in self.devices if p.startswith(vm_path_prefix)
+            p for p in self.devices if p.startswith(vm_path_prefix + '/')
         ]
 
         # remove non existing own devices
