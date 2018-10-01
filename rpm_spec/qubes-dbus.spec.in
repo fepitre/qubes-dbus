@@ -30,6 +30,7 @@ Vendor:		Invisible Things Lab
 License:    GPL2+
 URL:		http://www.qubes-os.org
 
+BuildRequires: python3-setuptools
 Requires: python3-dbus
 Requires: python3-gbulb
 Requires: python3-systemd
